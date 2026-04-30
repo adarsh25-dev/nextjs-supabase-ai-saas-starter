@@ -17,7 +17,7 @@ export function UsageMeter({ used, limit }: UsageMeterProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Usage</span>
+        <span className="text-muted-foreground">Current month usage</span>
         <span className="font-medium">
           {used.toLocaleString()} / {limit.toLocaleString()} messages
         </span>
