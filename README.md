@@ -1,167 +1,107 @@
 # Next.js Supabase AI SaaS Starter
 
-A production-oriented Next.js 14 starter for building AI SaaS products with Supabase, Stripe billing, email delivery, rate limiting, observability, and a prewired shadcn/ui + Tailwind UI foundation.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+![Made with Next.js](https://img.shields.io/badge/Made%20with-Next.js-black)
+[![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/new)
+[![GitHub stars](https://img.shields.io/github/stars/adarshparmar/nextjs-supabase-ai-saas-starter?style=social)](https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter)
 
-## Tech Stack
+Production-ready starter to launch AI SaaS products fast: auth, billing, streaming chat, rate limits, emails, analytics, and monitoring.
 
-- **Framework**: Next.js 14 (App Router), React 18, TypeScript (strict mode)
-- **Styling/UI**: Tailwind CSS, shadcn/ui, Radix UI primitives, Lucide icons
-- **Data/Auth**: Supabase (`@supabase/ssr`, `@supabase/supabase-js`)
-- **Payments**: Stripe
-- **AI**: OpenAI
-- **Email**: Resend
-- **Validation/Forms**: Zod, React Hook Form, Hookform Resolvers
-- **Rate limiting**: Upstash Redis + Upstash Ratelimit
-- **Monitoring**: Sentry for Next.js
+## Screenshots
 
-## Setup
+- Landing: `public/marketing-dashboard-placeholder.svg`
+- Chat: `public/marketing-chat-placeholder.svg`
 
-1. **Clone**
+## Features
+
+- 🚀 Next.js 14 App Router + TypeScript strict mode
+- 🔐 Supabase auth + RLS + profile management + avatar storage
+- 💳 Stripe subscriptions (Starter, Pro, Business) + webhook sync
+- 🤖 OpenAI streaming chat with session history persistence
+- 🧠 Tiered limits via Upstash rate limiting + monthly usage tracking
+- ✉️ Transactional email templates with Resend + React Email
+- 📈 PostHog analytics hooks for signup/login/chat/subscription
+- 🛡️ Sentry instrumentation + route/action error capture
+- 🔒 Security headers + CSP + robots/sitemap + OG image generation
+
+## Quick Start (5 commands)
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter.git
 cd nextjs-supabase-ai-saas-starter
-```
-
-2. **Install dependencies**
-
-```bash
 pnpm install
-```
-
-3. **Configure environment variables**
-
-```bash
 cp .env.example .env.local
-```
-
-Fill all values in `.env.local`:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- `STRIPE_PRICE_STARTER`
-- `STRIPE_PRICE_STARTER_YEARLY`
-- `STRIPE_PRICE_PRO`
-- `STRIPE_PRICE_PRO_YEARLY`
-- `STRIPE_PRICE_BUSINESS`
-- `STRIPE_PRICE_BUSINESS_YEARLY`
-- `OPENAI_API_KEY`
-- `RESEND_API_KEY`
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-- `NEXT_PUBLIC_SITE_URL`
-- `SENTRY_DSN`
-
-4. **Run locally**
-
-```bash
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Supabase Setup
+## Required Environment Variables
 
-1. Create a new project at [supabase.com](https://supabase.com).
-2. Add your project keys and URL to `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-3. Run the initial migration:
-   - `supabase/migrations/00001_initial_schema.sql`
-4. Generate TypeScript database types:
+See `.env.example` for the complete list. Key groups:
 
-```bash
-pnpm supabase:types
+- **Core**: `NEXT_PUBLIC_SITE_URL`
+- **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- **Stripe**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, price IDs
+- **AI**: `OPENAI_API_KEY`
+- **Email**: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- **Monitoring**: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`
+- **Analytics**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
+- **Rate limits**: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+
+## Architecture
+
+```mermaid
+flowchart LR
+  User --> NextApp[Next.js App Router]
+  NextApp --> Supabase[(Supabase DB + Auth + Storage)]
+  NextApp --> Stripe[Stripe Billing APIs]
+  NextApp --> OpenAI[OpenAI Chat Models]
+  NextApp --> Upstash[Upstash Redis Rate Limit]
+  NextApp --> Resend[Resend Email API]
+  NextApp --> PostHog[PostHog Analytics]
+  NextApp --> Sentry[Sentry Monitoring]
+  Stripe --> NextApp
 ```
 
-5. Replace `YOUR_PROJECT` in `package.json` script with your actual Supabase project ID before generating types.
+## Why This Stack?
 
-## Stripe Setup
+- **Next.js 14**: Mature routing and rendering model for SaaS apps.
+- **Supabase**: Fast auth + Postgres + RLS + storage with one platform.
+- **Stripe**: Reliable subscriptions and customer portal out of the box.
+- **OpenAI + Vercel AI SDK**: First-class streaming UX for chat features.
+- **Sentry + PostHog**: Both reliability and product insight loops.
 
-1. Create 3 Stripe products in your Stripe Dashboard:
-   - Starter
-   - Pro
-   - Business
-2. For each product, create two recurring prices:
-   - Monthly
-   - Yearly
-3. Add all price IDs and secret keys in `.env.local`:
-   - `STRIPE_SECRET_KEY`
-   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-   - `STRIPE_WEBHOOK_SECRET`
-   - `STRIPE_PRICE_STARTER`
-   - `STRIPE_PRICE_STARTER_YEARLY`
-   - `STRIPE_PRICE_PRO`
-   - `STRIPE_PRICE_PRO_YEARLY`
-   - `STRIPE_PRICE_BUSINESS`
-   - `STRIPE_PRICE_BUSINESS_YEARLY`
-4. Start local webhook forwarding with Stripe CLI:
+## Production Notes
 
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
+- Run SQL migrations in `supabase/migrations/` (includes Stripe webhook idempotency table).
+- Configure Stripe webhook endpoint: `/api/stripe/webhook`.
+- Configure Sentry DSN values for both server and client.
+- Configure PostHog key and host for event tracking.
 
-5. Copy the generated webhook signing secret from Stripe CLI output into:
-   - `STRIPE_WEBHOOK_SECRET`
+## Roadmap
 
-### Test Cards
+- [ ] Team workspaces and org billing
+- [ ] API key management UI
+- [ ] Background job queue for async tasks
+- [ ] Admin audit dashboard
+- [ ] More analytics events and feature-flag experiments
 
-- Success: `4242 4242 4242 4242`
-- Card requires authentication: `4000 0025 0000 3155`
-- Card declined: `4000 0000 0000 9995`
+## Contributing
 
-## Folder Structure
+Contributions are welcome. Open an issue with the problem statement first, then submit a PR with:
 
-```txt
-.
-├── app/
-│   ├── (auth)/
-│   ├── (dashboard)/
-│   ├── (marketing)/
-│   ├── api/
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── billing/
-│   ├── forms/
-│   ├── layout/
-│   ├── shared/
-│   └── ui/
-├── config/
-├── hooks/
-├── lib/
-│   ├── ai/
-│   ├── email/
-│   ├── hooks/
-│   ├── ratelimit/
-│   ├── stripe/
-│   ├── supabase/
-│   └── utils.ts
-├── public/
-├── supabase/
-│   └── migrations/
-├── types/
-├── .env.example
-└── components.json
-```
+- clear scope
+- tests or verification notes
+- migration notes if database changes are included
 
-## Notes
+## License
 
-- The latest shadcn CLI deprecates the old `toast` generator in favor of `sonner`. A compatibility `components/ui/toast.tsx` export is included so either pattern can be used.
-- Import alias is configured as `@/*` in `tsconfig.json`.
+MIT. See `LICENSE`.
 
-## Deployment Guide (Stub)
+## Author
 
-Deployment instructions will be added here later, including:
+Built by Adarsh Parmar.
 
-- Environment setup per platform
-- Build and runtime configuration
-- Secret management
-- Stripe webhook setup
-- Post-deploy verification checklist
+- LinkedIn: [linkedin.com/in/adarshparmar](https://linkedin.com/in/adarshparmar)
+- Portfolio: [adarshparmar.dev](https://adarshparmar.dev)

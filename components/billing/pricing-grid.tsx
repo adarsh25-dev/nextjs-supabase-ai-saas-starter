@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { trackEvent } from "@/lib/analytics/events"
 
 type Plan = {
   key: "starter" | "pro" | "business"
@@ -64,6 +65,7 @@ export function PricingGrid({ plans }: PricingGridProps) {
         throw new Error(payload.error ?? "Unable to create checkout session")
       }
 
+      trackEvent("plan_subscribed", { plan: planKey, billingCycle })
       window.location.href = payload.url
     } catch (error) {
       console.error(error)

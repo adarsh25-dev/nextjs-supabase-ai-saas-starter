@@ -1,7 +1,13 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { ChatLayout } from "@/components/chat/chat-layout"
 import { createClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  title: "Chat — SaaS Starter",
+  description: "Stream AI responses, manage sessions, and continue conversations.",
+}
 
 export default async function ChatPage({
   searchParams,

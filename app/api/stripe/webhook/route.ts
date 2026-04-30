@@ -3,6 +3,10 @@ import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
 
+import {
+  sendSubscriptionCanceledEmail,
+  sendSubscriptionConfirmationEmail,
+} from "@/lib/email/send"
 import type { Database } from "@/types/database"
 import { STRIPE_PRICE_TO_PLAN, type PlanTier } from "@/lib/stripe/config"
 import { stripe } from "@/lib/stripe/stripe"
@@ -27,6 +31,10 @@ function toSubscriptionStatus(
 function toPlanTier(priceId: string | null | undefined): PlanTier | "free" {
   if (!priceId) return "free"
   return STRIPE_PRICE_TO_PLAN.get(priceId) ?? "free"
+}
+
+function planLabel(tier: PlanTier | "free") {
+  return tier.charAt(0).toUpperCase() + tier.slice(1)
 }
 
 function getSupabaseAdminClient() {
@@ -123,6 +131,15 @@ export async function POST(request: Request) {
 
   try {
     const supabaseAdmin = getSupabaseAdminClient()
+    const { data: existingWebhookEvent } = await supabaseAdmin
+      .from("stripe_webhook_events")
+      .select("id")
+      .eq("event_id", event.id)
+      .maybeSingle()
+
+    if (existingWebhookEvent) {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
 
     switch (event.type) {
       case "checkout.session.completed": {
@@ -157,6 +174,14 @@ export async function POST(request: Request) {
             .current_period_end ?? null,
         })
 
+        const tier = toPlanTier(priceId)
+        const receiptEmail =
+          session.customer_details?.email ||
+          (typeof session.customer_email === "string" ? session.customer_email : null)
+        if (receiptEmail) {
+          await sendSubscriptionConfirmationEmail(receiptEmail, planLabel(tier))
+        }
+
         break
       }
 
@@ -187,6 +212,14 @@ export async function POST(request: Request) {
             .current_period_end ?? null,
         })
 
+        if (event.type === "customer.subscription.deleted") {
+          const customer = await stripe.customers.retrieve(customerId)
+          const email = !("deleted" in customer) ? customer.email : null
+          if (email) {
+            await sendSubscriptionCanceledEmail(email)
+          }
+        }
+
         break
       }
 
@@ -215,6 +248,16 @@ export async function POST(request: Request) {
 
       default:
         break
+    }
+
+    const { error: webhookInsertError } = await supabaseAdmin
+      .from("stripe_webhook_events")
+      .insert({
+        event_id: event.id,
+        event_type: event.type,
+      })
+    if (webhookInsertError?.code !== "23505" && webhookInsertError) {
+      throw webhookInsertError
     }
   } catch (error) {
     Sentry.captureException(error)

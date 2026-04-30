@@ -8,6 +8,7 @@ import { DefaultChatTransport, type UIMessage } from "ai"
 import { Button } from "@/components/ui/button"
 import { Message } from "@/components/chat/message"
 import type { ChatMessage } from "@/components/chat/types"
+import { trackEvent } from "@/lib/analytics/events"
 
 type ChatInterfaceProps = {
   sessionId: string | null
@@ -35,6 +36,7 @@ export function ChatInterface({
   const [pendingTitle, setPendingTitle] = useState<string | null>(null)
   const [input, setInput] = useState("")
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId)
+  const [lastSentMessage, setLastSentMessage] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const endRef = useRef<HTMLDivElement | null>(null)
 
@@ -45,6 +47,10 @@ export function ChatInterface({
         role: message.role,
         parts: [{ type: "text" as const, text: message.content }],
       })),
+    [initialMessages]
+  )
+  const initialTimestampById = useMemo(
+    () => new Map(initialMessages.map((message) => [message.id, message.created_at])),
     [initialMessages]
   )
 
@@ -151,10 +157,12 @@ export function ChatInterface({
       return
     }
 
-    if (!sessionId) {
+    if (!currentSessionId) {
       setPendingTitle(cleanInput.slice(0, 50))
     }
     event.preventDefault()
+    setLastSentMessage(cleanInput)
+    trackEvent("chat_message_sent", { sessionId: currentSessionId ?? "new" })
     setInput("")
     void sendMessage(
       { text: cleanInput },
@@ -169,6 +177,19 @@ export function ChatInterface({
   const injectPrompt = (prompt: string) => {
     setInput(prompt)
     setTimeout(() => textareaRef.current?.focus(), 0)
+  }
+
+  const retryLastMessage = () => {
+    if (!lastSentMessage || status === "submitted" || status === "streaming") return
+    setChatError(null)
+    void sendMessage(
+      { text: lastSentMessage },
+      {
+        body: {
+          sessionId: currentSessionId ?? undefined,
+        },
+      }
+    )
   }
 
   return (
@@ -203,7 +224,7 @@ export function ChatInterface({
                 id: message.id,
                 role: message.role as "user" | "assistant" | "system",
                 content: extractTextFromMessage(message),
-                created_at: new Date().toISOString(),
+                created_at: initialTimestampById.get(message.id) ?? new Date().toISOString(),
               }}
             />
           ))
@@ -227,6 +248,13 @@ export function ChatInterface({
                   Upgrade your plan
                 </Link>
               </p>
+            ) : null}
+            {chatError.kind === "generic" && lastSentMessage ? (
+              <div className="mt-3">
+                <Button type="button" variant="outline" size="sm" onClick={retryLastMessage}>
+                  Retry last message
+                </Button>
+              </div>
             ) : null}
           </div>
         ) : null}

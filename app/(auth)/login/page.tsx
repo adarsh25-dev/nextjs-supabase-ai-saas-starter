@@ -13,6 +13,7 @@ import { GoogleButton } from "@/components/auth/google-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { loginWithPassword } from "@/app/(auth)/actions"
+import { trackEvent } from "@/lib/analytics/events"
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -45,6 +46,7 @@ export default function LoginPage() {
 
       const nextPath = new URLSearchParams(window.location.search).get("next") ?? "/dashboard"
       toast.success("Logged in successfully")
+      trackEvent("login", { method: "password" })
       router.push(nextPath)
       router.refresh()
     } finally {

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { renameSession } from "@/app/dashboard/chat/actions"
+import { renameSession } from "@/app/(dashboard)/dashboard/chat/actions"
 import type { ChatSession } from "@/components/chat/types"
 import { cn } from "@/lib/utils"
 

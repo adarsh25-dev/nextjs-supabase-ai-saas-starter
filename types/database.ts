@@ -144,6 +144,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          id: string
+          event_id: string
+          event_type: string
+          processed_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          event_type: string
+          processed_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

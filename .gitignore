@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+.cursorrules
 /.pnp
 .pnp.*
 .yarn/*

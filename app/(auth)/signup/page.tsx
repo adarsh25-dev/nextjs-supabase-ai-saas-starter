@@ -13,6 +13,7 @@ import { GoogleButton } from "@/components/auth/google-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signupWithPassword } from "@/app/(auth)/actions"
+import { trackEvent } from "@/lib/analytics/events"
 
 const signupSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
@@ -49,6 +50,7 @@ export default function SignupPage() {
       }
 
       toast.success(result.message ?? "Account created successfully")
+      trackEvent("signup", { method: "password" })
       router.push("/dashboard")
       router.refresh()
     } finally {
