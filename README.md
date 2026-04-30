@@ -44,8 +44,11 @@ Fill all values in `.env.local`:
 - `STRIPE_WEBHOOK_SECRET`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_PRICE_STARTER`
+- `STRIPE_PRICE_STARTER_YEARLY`
 - `STRIPE_PRICE_PRO`
+- `STRIPE_PRICE_PRO_YEARLY`
 - `STRIPE_PRICE_BUSINESS`
+- `STRIPE_PRICE_BUSINESS_YEARLY`
 - `OPENAI_API_KEY`
 - `RESEND_API_KEY`
 - `UPSTASH_REDIS_REST_URL`
@@ -78,6 +81,40 @@ pnpm supabase:types
 
 5. Replace `YOUR_PROJECT` in `package.json` script with your actual Supabase project ID before generating types.
 
+## Stripe Setup
+
+1. Create 3 Stripe products in your Stripe Dashboard:
+   - Starter
+   - Pro
+   - Business
+2. For each product, create two recurring prices:
+   - Monthly
+   - Yearly
+3. Add all price IDs and secret keys in `.env.local`:
+   - `STRIPE_SECRET_KEY`
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+   - `STRIPE_WEBHOOK_SECRET`
+   - `STRIPE_PRICE_STARTER`
+   - `STRIPE_PRICE_STARTER_YEARLY`
+   - `STRIPE_PRICE_PRO`
+   - `STRIPE_PRICE_PRO_YEARLY`
+   - `STRIPE_PRICE_BUSINESS`
+   - `STRIPE_PRICE_BUSINESS_YEARLY`
+4. Start local webhook forwarding with Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+5. Copy the generated webhook signing secret from Stripe CLI output into:
+   - `STRIPE_WEBHOOK_SECRET`
+
+### Test Cards
+
+- Success: `4242 4242 4242 4242`
+- Card requires authentication: `4000 0025 0000 3155`
+- Card declined: `4000 0000 0000 9995`
+
 ## Folder Structure
 
 ```txt
@@ -91,6 +128,7 @@ pnpm supabase:types
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
+│   ├── billing/
 │   ├── forms/
 │   ├── layout/
 │   ├── shared/
@@ -100,6 +138,7 @@ pnpm supabase:types
 ├── lib/
 │   ├── ai/
 │   ├── email/
+│   ├── hooks/
 │   ├── ratelimit/
 │   ├── stripe/
 │   ├── supabase/
