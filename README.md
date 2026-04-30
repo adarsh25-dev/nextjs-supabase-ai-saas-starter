@@ -61,6 +61,23 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Supabase Setup
+
+1. Create a new project at [supabase.com](https://supabase.com).
+2. Add your project keys and URL to `.env.local`:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+3. Run the initial migration:
+   - `supabase/migrations/00001_initial_schema.sql`
+4. Generate TypeScript database types:
+
+```bash
+pnpm supabase:types
+```
+
+5. Replace `YOUR_PROJECT` in `package.json` script with your actual Supabase project ID before generating types.
+
 ## Folder Structure
 
 ```txt
@@ -88,6 +105,8 @@ Open [http://localhost:3000](http://localhost:3000).
 │   ├── supabase/
 │   └── utils.ts
 ├── public/
+├── supabase/
+│   └── migrations/
 ├── types/
 ├── .env.example
 └── components.json
