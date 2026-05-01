@@ -45,7 +45,7 @@ const featureItems = [
   {
     icon: Sparkles,
     title: "AI chat with streaming",
-    description: "OpenAI-powered streaming conversations with session history.",
+    description: "Gemini-powered streaming conversations with session history.",
   },
   {
     icon: Lock,
@@ -97,7 +97,7 @@ export function BelowFoldSections({ plans, codeSnippet }: BelowFoldSectionsProps
       <section className="border-y border-slate-200 bg-white py-8">
         <MotionFade className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-center gap-3 px-4 text-sm text-slate-600">
           <span className="font-medium text-slate-700">Trusted by builders at:</span>
-          {["Vercel", "Supabase", "OpenAI", "Stripe"].map((logo) => (
+          {["Vercel", "Supabase", "Gemini", "Stripe"].map((logo) => (
             <span key={logo} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1 font-semibold">
               {logo}
             </span>

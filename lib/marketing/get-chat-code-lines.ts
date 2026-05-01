@@ -1,13 +1,13 @@
 import { codeToHtml } from "shiki"
 
 const chatSnippet = `import { streamText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { google } from "@ai-sdk/google"
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: google("gemini-2.5-flash"),
     messages,
   })
 

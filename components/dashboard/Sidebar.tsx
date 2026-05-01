@@ -63,7 +63,7 @@ export function Sidebar({
     <>
       <aside
         className={cn(
-          "hidden h-screen w-full border-r border-[hsl(var(--color-text-primary)/0.08)] bg-black/70 p-3 backdrop-blur transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex lg:flex-col"
+          "hidden w-full border-r border-[hsl(var(--color-text-primary)/0.08)] bg-black/70 p-3 backdrop-blur transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start lg:flex-col"
         )}
       >
         <div className="mb-3 flex items-center justify-between">

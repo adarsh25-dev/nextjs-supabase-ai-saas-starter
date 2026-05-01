@@ -1,64 +1,82 @@
-import * as Sentry from "@sentry/nextjs"
-import { createOpenAI } from "@ai-sdk/openai"
-import { streamText } from "ai"
-import { NextResponse } from "next/server"
-import { z } from "zod"
+import * as Sentry from "@sentry/nextjs";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { streamText } from "ai";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
-import { createClient } from "@/lib/supabase/server"
-import { getRateLimitForUser } from "@/lib/ratelimit"
-import { PLAN_LIMITS } from "@/lib/stripe/config"
+import { createClient } from "@/lib/supabase/server";
+import { getRateLimitForUser } from "@/lib/ratelimit";
+import { PLAN_LIMITS } from "@/lib/stripe/config";
 
 const chatBodySchema = z.object({
   sessionId: z.string().uuid().optional(),
   messages: z.array(z.any()).min(1),
-})
+});
 
-const openaiProvider = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY ?? "sk-placeholder",
-})
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY ?? "gemini-placeholder",
+});
+
+const GEMINI_MODEL_DEFAULT =
+  process.env.GEMINI_MODEL_DEFAULT ?? "gemini-2.5-flash";
+const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO ?? "gemini-2.5-flash";
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ) {
       return NextResponse.json(
         { error: "Supabase env vars are not configured." },
-        { status: 500 }
-      )
+        { status: 500 },
+      );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY is not configured." },
-        { status: 500 }
-      )
+        { error: "GEMINI_API_KEY is not configured." },
+        { status: 500 },
+      );
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const parsed = chatBodySchema.safeParse(await request.json())
+    const parsed = chatBodySchema.safeParse(await request.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 },
+      );
     }
 
     const normalizedMessages = parsed.data.messages
       .map(normalizeIncomingMessage)
-      .filter((message): message is { role: "user" | "assistant" | "system"; content: string } =>
-        Boolean(message && message.content.trim())
-      )
+      .filter(
+        (
+          message,
+        ): message is {
+          role: "user" | "assistant" | "system";
+          content: string;
+        } => Boolean(message && message.content.trim()),
+      );
 
     if (normalizedMessages.length === 0) {
-      return NextResponse.json({ error: "No valid messages provided" }, { status: 400 })
+      return NextResponse.json(
+        { error: "No valid messages provided" },
+        { status: 400 },
+      );
     }
 
-    const now = new Date()
-    const monthYear = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`
+    const now = new Date();
+    const monthYear = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
     const { data: subscription, error: subscriptionError } = await supabase
       .from("subscriptions")
@@ -66,28 +84,30 @@ export async function POST(request: Request) {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
     if (subscriptionError) {
-      Sentry.captureException(subscriptionError)
+      Sentry.captureException(subscriptionError);
     }
 
     const tier =
-      subscription && (subscription.status === "active" || subscription.status === "trialing")
+      subscription &&
+      (subscription.status === "active" || subscription.status === "trialing")
         ? subscription.plan_tier
-        : "free"
+        : "free";
 
-    const rate = await getRateLimitForUser(user.id, tier)
+    const rate = await getRateLimitForUser(user.id, tier);
     if (!rate.success) {
       return NextResponse.json(
         {
-          error: "Rate limit exceeded. Please try again later or upgrade your plan.",
+          error:
+            "Rate limit exceeded. Please try again later or upgrade your plan.",
           limit: rate.limit,
           remaining: rate.remaining,
           upgradeUrl: "/pricing",
         },
-        { status: 429 }
-      )
+        { status: 429 },
+      );
     }
 
     const { count: monthlyMessagesCount } = await supabase
@@ -95,34 +115,40 @@ export async function POST(request: Request) {
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("event_type", "chat_message")
-      .eq("month_year", monthYear)
+      .eq("month_year", monthYear);
 
-    const limit = PLAN_LIMITS[tier]
+    const limit = PLAN_LIMITS[tier];
     if ((monthlyMessagesCount ?? 0) >= limit) {
       return NextResponse.json(
         {
-          error: "Monthly message limit reached. Upgrade your plan to continue chatting.",
+          error:
+            "Monthly message limit reached. Upgrade your plan to continue chatting.",
           upgradeUrl: "/pricing",
         },
-        { status: 403 }
-      )
+        { status: 403 },
+      );
     }
 
-    let sessionId = parsed.data.sessionId
+    let sessionId = parsed.data.sessionId;
     if (sessionId) {
       const { data: existingSession } = await supabase
         .from("chat_sessions")
         .select("id")
         .eq("id", sessionId)
         .eq("user_id", user.id)
-        .maybeSingle()
+        .maybeSingle();
 
       if (!existingSession) {
-        return NextResponse.json({ error: "Session not found" }, { status: 404 })
+        return NextResponse.json(
+          { error: "Session not found" },
+          { status: 404 },
+        );
       }
     } else {
-      const firstUserMessage = normalizedMessages.find((m) => m.role === "user")?.content ?? "New chat"
-      const title = firstUserMessage.trim().slice(0, 50) || "New chat"
+      const firstUserMessage =
+        normalizedMessages.find((m) => m.role === "user")?.content ??
+        "New chat";
+      const title = firstUserMessage.trim().slice(0, 50) || "New chat";
       const { data: newSession, error: sessionError } = await supabase
         .from("chat_sessions")
         .insert({
@@ -130,18 +156,26 @@ export async function POST(request: Request) {
           title,
         })
         .select("id")
-        .single()
+        .single();
 
       if (sessionError || !newSession) {
-        return NextResponse.json({ error: "Failed to create chat session" }, { status: 500 })
+        return NextResponse.json(
+          { error: "Failed to create chat session" },
+          { status: 500 },
+        );
       }
 
-      sessionId = newSession.id
+      sessionId = newSession.id;
     }
 
-    const latestUserMessage = [...normalizedMessages].reverse().find((m) => m.role === "user")
+    const latestUserMessage = [...normalizedMessages]
+      .reverse()
+      .find((m) => m.role === "user");
     if (!latestUserMessage) {
-      return NextResponse.json({ error: "No user message found" }, { status: 400 })
+      return NextResponse.json(
+        { error: "No user message found" },
+        { status: 400 },
+      );
     }
 
     await supabase.from("chat_messages").insert({
@@ -149,18 +183,26 @@ export async function POST(request: Request) {
       role: "user",
       content: latestUserMessage.content,
       tokens_used: 0,
-    })
+    });
 
-    const model = tier === "pro" || tier === "business" ? "gpt-4o" : "gpt-4o-mini"
+    const model =
+      tier === "pro" || tier === "business"
+        ? GEMINI_MODEL_PRO
+        : GEMINI_MODEL_DEFAULT;
 
     const result = streamText({
-      model: openaiProvider(model),
+      model: google(model),
+      maxRetries: 0,
       messages: normalizedMessages.map((message) => ({
         role: message.role,
         content: message.content,
       })),
+      onError: ({ error }) => {
+        Sentry.captureException(error);
+        // StreamText onError is side-effect only; do not return a value.
+      },
       onFinish: async ({ text, usage }) => {
-        const totalTokens = usage.totalTokens ?? 0
+        const totalTokens = usage.totalTokens ?? 0;
 
         if (text.trim().length > 0) {
           await supabase.from("chat_messages").insert({
@@ -168,7 +210,7 @@ export async function POST(request: Request) {
             role: "assistant",
             content: text,
             tokens_used: totalTokens,
-          })
+          });
         }
 
         await supabase.from("usage_records").insert({
@@ -176,48 +218,112 @@ export async function POST(request: Request) {
           event_type: "chat_message",
           tokens_used: totalTokens,
           month_year: monthYear,
-        })
+        });
       },
-    })
+    });
 
     return result.toUIMessageStreamResponse({
       headers: {
         "x-chat-session-id": sessionId,
+        "x-ai-model": model,
       },
-    })
+    });
   } catch (error) {
-    Sentry.captureException(error)
-    return NextResponse.json({ error: "Failed to process chat request." }, { status: 500 })
+    const message = getErrorMessage(error);
+    if (isGeminiPermissionDeniedError(error)) {
+      return NextResponse.json(
+        {
+          error:
+            "Gemini project access denied for the configured model/key. Use a model your project is allowed to access (set GEMINI_MODEL_DEFAULT / GEMINI_MODEL_PRO).",
+          details: message,
+          docs: "https://ai.google.dev/gemini-api/docs/models",
+        },
+        { status: 403 },
+      );
+    }
+    if (isGeminiQuotaError(error)) {
+      return NextResponse.json(
+        {
+          error:
+            "Gemini quota exceeded for this API key/project. Add billing or use a key/project with available Gemini quota.",
+          details: message,
+          docs: "https://ai.google.dev/gemini-api/docs/rate-limits",
+          usage: "https://ai.dev/rate-limit",
+        },
+        { status: 429 },
+      );
+    }
+
+    Sentry.captureException(error);
+    return NextResponse.json(
+      { error: "Failed to process chat request." },
+      { status: 500 },
+    );
   }
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
+}
+
+function isGeminiQuotaError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes("quota exceeded") ||
+    message.includes("exceeded your current quota") ||
+    message.includes("rate-limits") ||
+    message.includes("generate_content_free_tier_requests")
+  );
+}
+
+function isGeminiPermissionDeniedError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes("permission_denied") ||
+    message.includes("denied access") ||
+    message.includes("your project has been denied access")
+  );
+}
+
 function normalizeIncomingMessage(input: unknown) {
-  if (!input || typeof input !== "object") return null
+  if (!input || typeof input !== "object") return null;
 
   const message = input as {
-    role?: string
-    content?: unknown
-    parts?: Array<{ type?: string; text?: string }>
-  }
+    role?: string;
+    content?: unknown;
+    parts?: Array<{ type?: string; text?: string }>;
+  };
 
-  if (!message.role || !["user", "assistant", "system"].includes(message.role)) {
-    return null
+  if (
+    !message.role ||
+    !["user", "assistant", "system"].includes(message.role)
+  ) {
+    return null;
   }
 
   if (typeof message.content === "string") {
-    return { role: message.role as "user" | "assistant" | "system", content: message.content }
+    return {
+      role: message.role as "user" | "assistant" | "system",
+      content: message.content,
+    };
   }
 
   if (Array.isArray(message.parts)) {
     const content = message.parts
       .filter((part) => part?.type === "text" && typeof part.text === "string")
       .map((part) => part.text)
-      .join("")
+      .join("");
     return {
       role: message.role as "user" | "assistant" | "system",
       content,
-    }
+    };
   }
 
-  return null
+  return null;
 }

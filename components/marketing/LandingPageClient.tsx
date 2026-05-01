@@ -78,7 +78,7 @@ const faqs = [
   },
 ]
 
-const stackLogos = ["Vercel", "Supabase", "OpenAI", "Stripe", "Anthropic", "Tailwind", "Next.js", "TypeScript"]
+const stackLogos = ["Vercel", "Supabase", "Gemini", "Stripe", "Anthropic", "Tailwind", "Next.js", "TypeScript"]
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(false)

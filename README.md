@@ -17,7 +17,7 @@ Production-ready starter to launch AI SaaS products fast: auth, billing, streami
 - 🚀 Next.js 14 App Router + TypeScript strict mode
 - 🔐 Supabase auth + RLS + profile management + avatar storage
 - 💳 Stripe subscriptions (Starter, Pro, Business) + webhook sync
-- 🤖 OpenAI streaming chat with session history persistence
+- 🤖 Gemini streaming chat with session history persistence
 - 🧠 Tiered limits via Upstash rate limiting + monthly usage tracking
 - ✉️ Transactional email templates with Resend + React Email
 - 📈 PostHog analytics hooks for signup/login/chat/subscription
@@ -43,7 +43,7 @@ See `.env.example` for the complete list. Key groups:
 - **Core**: `NEXT_PUBLIC_SITE_URL`
 - **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - **Stripe**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, price IDs
-- **AI**: `OPENAI_API_KEY`
+- **AI**: `GEMINI_API_KEY`, optional `GEMINI_MODEL_DEFAULT`, `GEMINI_MODEL_PRO`
 - **Email**: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 - **Monitoring**: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`
 - **Analytics**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
@@ -56,7 +56,7 @@ flowchart LR
   User --> NextApp[Next.js App Router]
   NextApp --> Supabase[(Supabase DB + Auth + Storage)]
   NextApp --> Stripe[Stripe Billing APIs]
-  NextApp --> OpenAI[OpenAI Chat Models]
+  NextApp --> Gemini[Gemini Chat Models]
   NextApp --> Upstash[Upstash Redis Rate Limit]
   NextApp --> Resend[Resend Email API]
   NextApp --> PostHog[PostHog Analytics]
@@ -69,7 +69,7 @@ flowchart LR
 - **Next.js 14**: Mature routing and rendering model for SaaS apps.
 - **Supabase**: Fast auth + Postgres + RLS + storage with one platform.
 - **Stripe**: Reliable subscriptions and customer portal out of the box.
-- **OpenAI + Vercel AI SDK**: First-class streaming UX for chat features.
+- **Gemini + Vercel AI SDK**: First-class streaming UX for chat features.
 - **Sentry + PostHog**: Both reliability and product insight loops.
 
 ## Production Notes
