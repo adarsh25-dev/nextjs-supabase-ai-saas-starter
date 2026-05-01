@@ -19,9 +19,11 @@ type Plan = {
 
 type PricingGridProps = {
   plans: Plan[]
+  currentTier?: "free" | "starter" | "pro" | "business"
+  mode?: "pricing" | "billing"
 }
 
-export function PricingGrid({ plans }: PricingGridProps) {
+export function PricingGrid({ plans, currentTier, mode = "pricing" }: PricingGridProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
@@ -75,61 +77,89 @@ export function PricingGrid({ plans }: PricingGridProps) {
 
   return (
     <div className="space-y-8">
-      <div className="mx-auto flex w-fit items-center gap-2 rounded-lg border bg-muted p-1">
-        <Button
-          variant={billingCycle === "monthly" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setBillingCycle("monthly")}
-        >
-          Monthly
-        </Button>
-        <Button
-          variant={billingCycle === "yearly" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setBillingCycle("yearly")}
-        >
-          Yearly
-        </Button>
-        <Badge variant="secondary">20% off yearly</Badge>
-      </div>
+      {mode === "pricing" ? (
+        <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-1">
+          <button
+            type="button"
+            className={`rounded-full px-4 py-1.5 text-sm transition ${
+              billingCycle === "monthly"
+                ? "bg-[hsl(var(--color-text-primary)/0.12)] text-[hsl(var(--color-text-primary))]"
+                : "text-[hsl(var(--color-text-secondary))]"
+            }`}
+            onClick={() => setBillingCycle("monthly")}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            className={`rounded-full px-4 py-1.5 text-sm transition ${
+              billingCycle === "yearly"
+                ? "bg-[hsl(var(--color-text-primary)/0.12)] text-[hsl(var(--color-text-primary))]"
+                : "text-[hsl(var(--color-text-secondary))]"
+            }`}
+            onClick={() => setBillingCycle("yearly")}
+          >
+            Yearly
+          </button>
+          <Badge className="bg-[hsl(var(--color-accent)/0.2)] text-[hsl(var(--color-accent-soft))]">Save 20%</Badge>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 md:grid-cols-3">
         {computedPlans.map((plan) => (
-          <Card key={plan.key} className={plan.key === "pro" ? "border-primary shadow-md" : ""}>
+          <Card
+            key={plan.key}
+            className={`gradient-border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] ${
+              currentTier === plan.key ? "shadow-[0_0_35px_-16px_hsl(var(--color-accent)/0.7)]" : ""
+            }`}
+          >
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
-                <CardTitle>{plan.name}</CardTitle>
-                {plan.key === "pro" ? <Badge>Most popular</Badge> : null}
+                <CardTitle className="font-display">{plan.name}</CardTitle>
+                {mode === "pricing" && plan.key === "pro" ? (
+                  <Badge className="bg-[hsl(var(--color-accent)/0.2)] text-[hsl(var(--color-accent-soft))]">Most popular</Badge>
+                ) : null}
+                {mode === "billing" && currentTier === plan.key ? (
+                  <Badge className="bg-[hsl(var(--color-accent)/0.2)] text-[hsl(var(--color-accent-soft))]">Current plan</Badge>
+                ) : null}
               </div>
-              <div className="text-3xl font-bold">
+              <div className="font-display text-3xl font-bold text-[hsl(var(--color-text-primary))]">
                 ${plan.displayPrice}
-                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                <span className="ml-1 text-sm font-normal text-[hsl(var(--color-text-secondary))]">
                   /month
                 </span>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-[hsl(var(--color-text-secondary))]">
                 {plan.features.map((feature) => (
                   <li key={feature}>- {feature}</li>
                 ))}
               </ul>
             </CardContent>
             <CardFooter>
-              <Button
-                className="w-full"
-                disabled={!plan.checkoutPriceId || loadingPlan === plan.key}
-                onClick={() => subscribe(plan.key, plan.checkoutPriceId)}
-              >
-                {loadingPlan === plan.key ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Redirecting...
-                  </>
-                ) : (
-                  "Subscribe"
-                )}
-              </Button>
+              {mode === "billing" && currentTier === plan.key ? (
+                <Button className="w-full" variant="secondary" disabled>
+                  Current plan
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  disabled={!plan.checkoutPriceId || loadingPlan === plan.key}
+                  onClick={() => subscribe(plan.key, plan.checkoutPriceId)}
+                >
+                  {loadingPlan === plan.key ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : mode === "billing" ? (
+                    `Switch to ${plan.name}`
+                  ) : (
+                    "Subscribe"
+                  )}
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}

@@ -2,8 +2,10 @@
 
 import { useEffect } from "react"
 import * as Sentry from "@sentry/nextjs"
+import { AlertTriangle, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/primitives/EmptyState"
 
 export default function MarketingGroupError({
   error,
@@ -17,12 +19,18 @@ export default function MarketingGroupError({
   }, [error])
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 p-6 text-center">
-      <h2 className="text-xl font-semibold">Unable to load page</h2>
-      <p className="text-sm text-muted-foreground">
-        We hit an issue loading this page. Please try again.
-      </p>
-      <Button onClick={reset}>Try again</Button>
+    <div className="mx-auto flex min-h-[64vh] w-full max-w-3xl items-center justify-center px-4 py-8">
+      <EmptyState
+        icon={<AlertTriangle className="size-5" />}
+        title="Unable to load this page"
+        description="Something interrupted rendering. Retry to continue browsing."
+        action={
+          <Button onClick={reset}>
+            <RefreshCw className="mr-1.5 size-4" />
+            Try again
+          </Button>
+        }
+      />
     </div>
   )
 }

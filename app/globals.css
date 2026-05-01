@@ -234,4 +234,28 @@
   .text-glow {
     text-shadow: 0 0 30px hsl(var(--color-accent) / 0.35);
   }
+
+  .link-underline {
+    background-image: linear-gradient(hsl(var(--color-accent-soft)), hsl(var(--color-accent-soft)));
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    transition: background-size 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .link-underline:hover,
+  .link-underline:focus-visible {
+    background-size: 100% 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

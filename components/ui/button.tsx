@@ -5,7 +5,7 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] outline-none select-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-accent))] active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] outline-none select-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-accent))] active:not-aria-[haspopup]:scale-[0.98] active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -20,7 +20,7 @@ const buttonVariants = cva(
         ghost:
           "border-transparent bg-transparent text-[hsl(var(--color-text-primary))] hover:bg-[hsl(var(--color-text-primary)/0.05)]",
         destructive: "border-[hsl(var(--color-danger)/0.4)] bg-[hsl(var(--color-danger)/0.16)] text-[hsl(var(--color-text-primary))]",
-        link: "border-transparent bg-transparent text-[hsl(var(--color-accent-soft))] underline-offset-4 hover:underline",
+        link: "link-underline border-transparent bg-transparent text-[hsl(var(--color-accent-soft))]",
         shine:
           "border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] text-[hsl(var(--color-text-primary))] before:pointer-events-none before:absolute before:inset-0 before:translate-x-[-120%] before:bg-[linear-gradient(115deg,transparent_30%,hsl(var(--color-text-primary)/0.25)_50%,transparent_70%)] before:transition-transform before:duration-700 hover:before:translate-x-[120%]",
       },

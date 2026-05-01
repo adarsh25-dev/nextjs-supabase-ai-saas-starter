@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 
 type AvatarUploadProps = {
   userId: string
@@ -95,11 +96,17 @@ export function AvatarUpload({
   }
 
   return (
-    <div className="flex items-center gap-4">
-      <Avatar size="lg">
-        <AvatarImage src={previewUrl ?? undefined} alt={fullName} />
-        <AvatarFallback>{initials(fullName, email)}</AvatarFallback>
-      </Avatar>
+    <div className="space-y-4">
+      <div className="flex items-center gap-4 rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-4">
+        <Avatar className="size-20 ring-1 ring-[hsl(var(--color-border))] transition-all hover:ring-[hsl(var(--color-accent-soft)/0.8)]">
+          <AvatarImage src={previewUrl ?? undefined} alt={fullName} />
+          <AvatarFallback>{initials(fullName, email)}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="text-sm text-[hsl(var(--color-text-primary))]">Upload a profile picture</p>
+          <p className="text-xs text-[hsl(var(--color-text-secondary))]">PNG/JPG up to 5MB</p>
+        </div>
+      </div>
 
       <input
         ref={inputRef}
@@ -108,11 +115,14 @@ export function AvatarUpload({
         accept="image/*"
         onChange={handleFileChange}
       />
-      <Button
+      <button
         type="button"
-        variant="outline"
         onClick={() => inputRef.current?.click()}
         disabled={isUploading}
+        className={cn(
+          "group flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated)/0.6)] px-4 py-5 text-sm text-[hsl(var(--color-text-secondary))] transition-all duration-200 hover:border-[hsl(var(--color-accent-soft)/0.7)] hover:text-[hsl(var(--color-text-primary))]",
+          isUploading ? "cursor-not-allowed opacity-70" : ""
+        )}
       >
         {isUploading ? (
           <>
@@ -122,10 +132,10 @@ export function AvatarUpload({
         ) : (
           <>
             <Camera className="size-4" />
-            Upload avatar
+            Choose image
           </>
         )}
-      </Button>
+      </button>
     </div>
   )
 }

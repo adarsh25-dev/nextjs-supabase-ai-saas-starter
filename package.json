@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:dev-user": "node scripts/seed-dev-user.mjs",
     "supabase:types": "supabase gen types typescript --project-id YOUR_PROJECT > types/database.ts"
   },
   "dependencies": {

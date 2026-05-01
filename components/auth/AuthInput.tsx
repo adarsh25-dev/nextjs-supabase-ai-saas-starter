@@ -1,33 +1,37 @@
 "use client"
 
+import { forwardRef } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Eye, EyeOff } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { cn } from "@/lib/utils"
 
-type AuthInputProps = React.ComponentProps<"input"> & {
+type AuthInputProps = React.ComponentPropsWithoutRef<"input"> & {
   label: string
   error?: string
   helperText?: string
   showTogglePassword?: boolean
 }
 
-export function AuthInput({
-  id,
-  label,
-  error,
-  helperText,
-  showTogglePassword = false,
-  type = "text",
-  className,
-  value,
-  defaultValue,
-  onFocus,
-  onBlur,
-  onChange,
-  ...props
-}: AuthInputProps) {
+export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(function AuthInput(
+  {
+    id,
+    label,
+    error,
+    helperText,
+    showTogglePassword = false,
+    type = "text",
+    className,
+    value,
+    defaultValue,
+    onFocus,
+    onBlur,
+    onChange,
+    ...props
+  }: AuthInputProps,
+  ref
+) {
   const [isFocused, setIsFocused] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [hasValue, setHasValue] = useState(Boolean(value ?? defaultValue))
@@ -54,6 +58,7 @@ export function AuthInput({
           {label}
         </label>
         <input
+          ref={ref}
           id={id}
           type={inputType}
           value={value}
@@ -126,4 +131,4 @@ export function AuthInput({
       </div>
     </div>
   )
-}
+})

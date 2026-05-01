@@ -2,8 +2,10 @@
 
 import { useEffect } from "react"
 import * as Sentry from "@sentry/nextjs"
+import { AlertTriangle, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/primitives/EmptyState"
 
 export default function AuthGroupError({
   error,
@@ -17,12 +19,18 @@ export default function AuthGroupError({
   }, [error])
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 p-6 text-center">
-      <h2 className="text-xl font-semibold">Authentication error</h2>
-      <p className="text-sm text-muted-foreground">
-        Something failed while loading this authentication page.
-      </p>
-      <Button onClick={reset}>Try again</Button>
+    <div className="mx-auto flex min-h-[64vh] w-full max-w-3xl items-center justify-center px-4 py-8">
+      <EmptyState
+        icon={<AlertTriangle className="size-5" />}
+        title="Authentication error"
+        description="Something failed while loading this auth screen. Retry to continue."
+        action={
+          <Button onClick={reset}>
+            <RefreshCw className="mr-1.5 size-4" />
+            Try again
+          </Button>
+        }
+      />
     </div>
   )
 }

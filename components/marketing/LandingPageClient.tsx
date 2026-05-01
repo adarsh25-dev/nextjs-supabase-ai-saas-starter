@@ -396,7 +396,7 @@ export function LandingPageClient({ plans, codeLines }: LandingPageClientProps) 
                         Most popular
                       </span>
                     ) : null}
-                    <h4 className="text-xl text-[hsl(var(--color-text-primary))]">{plan.name}</h4>
+                    <h3 className="text-xl text-[hsl(var(--color-text-primary))]">{plan.name}</h3>
                     <p className="mt-3 text-5xl leading-none text-[hsl(var(--color-text-primary))]">
                       ${plan.price}
                       <span className="ml-1 text-sm text-[hsl(var(--color-text-secondary))]">/month</span>
@@ -524,7 +524,7 @@ function FeatureTile({
           <div className="mb-4 inline-flex size-9 items-center justify-center rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg))]">
             <Icon className="size-4 text-[hsl(var(--color-accent-soft))]" />
           </div>
-          <h4 className="mb-3 text-xl text-[hsl(var(--color-text-primary))]">{title}</h4>
+          <h3 className="mb-3 text-xl text-[hsl(var(--color-text-primary))]">{title}</h3>
           {children}
         </div>
       </motion.article>

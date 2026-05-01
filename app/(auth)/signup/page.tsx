@@ -39,7 +39,7 @@ export default function SignupPage() {
       password: "",
     },
   })
-  const password = form.watch("password")
+  const password = form.watch("password") ?? ""
 
   const passwordStrength = useMemo(() => {
     let score = 0
