@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Drawer } from "vaul"
 
 import { ChatInterface } from "@/components/chat/chat-interface"
-import { SessionSidebar } from "@/components/chat/session-sidebar"
+import { SessionsSidebar } from "@/components/chat/SessionsSidebar"
 import type { ChatMessage, ChatSession } from "@/components/chat/types"
+import { renameSession } from "@/app/(dashboard)/dashboard/chat/actions"
 
 type ChatLayoutProps = {
   initialSessions: ChatSession[]
@@ -23,6 +25,7 @@ export function ChatLayout({
   const [sessions, setSessions] = useState<ChatSession[]>(initialSessions)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(initialSessionId)
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+  const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false)
 
   const loadSession = async (sessionId: string) => {
     setActiveSessionId(sessionId)
@@ -35,6 +38,7 @@ export function ChatLayout({
     }
     const payload = await response.json()
     setMessages(payload.messages ?? [])
+    setMobileSessionsOpen(false)
   }
 
   const newChat = () => {
@@ -74,22 +78,60 @@ export function ChatLayout({
     )
   }
 
+  const activeSession = sessions.find((session) => session.id === activeSessionId)
+
+  const handleRenameFromHeader = async (sessionId: string, title: string) => {
+    const result = await renameSession({ sessionId, title })
+    if (!result.ok) {
+      toast.error(result.error ?? "Failed to rename chat")
+      return
+    }
+    handleSessionRenamed(sessionId, title)
+    toast.success("Session renamed")
+  }
+
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
-      <SessionSidebar
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelectSession={(sessionId) => void loadSession(sessionId)}
-        onNewChat={newChat}
-        onSessionDeleted={handleSessionDeleted}
-        onSessionRenamed={handleSessionRenamed}
-      />
+      <aside className="hidden h-full w-[280px] shrink-0 lg:block">
+        <SessionsSidebar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={(sessionId) => void loadSession(sessionId)}
+          onNewChat={newChat}
+          onSessionDeleted={handleSessionDeleted}
+          onSessionRenamed={handleSessionRenamed}
+        />
+      </aside>
+
+      <Drawer.Root open={mobileSessionsOpen} onOpenChange={setMobileSessionsOpen}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 z-40 bg-black/70 lg:hidden" />
+          <Drawer.Content className="glass fixed inset-x-0 bottom-0 z-50 max-h-[85vh] rounded-t-2xl border border-[hsl(var(--color-border))] lg:hidden">
+            <div className="mx-auto mt-3 h-1.5 w-14 rounded-full bg-[hsl(var(--color-text-primary)/0.2)]" />
+            <div className="h-[75vh]">
+              <SessionsSidebar
+                sessions={sessions}
+                activeSessionId={activeSessionId}
+                onSelectSession={(sessionId) => void loadSession(sessionId)}
+                onNewChat={newChat}
+                onSessionDeleted={handleSessionDeleted}
+                onSessionRenamed={handleSessionRenamed}
+              />
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+
       <main className="flex min-w-0 flex-1 flex-col">
         <ChatInterface
           key={activeSessionId ?? "new"}
           sessionId={activeSessionId}
+          sessionTitle={activeSession?.title ?? "New chat"}
           initialMessages={messages}
           onSessionCreated={handleSessionCreated}
+          onNewChat={newChat}
+          onOpenSessionsMobile={() => setMobileSessionsOpen(true)}
+          onRenameSession={handleRenameFromHeader}
         />
       </main>
     </div>

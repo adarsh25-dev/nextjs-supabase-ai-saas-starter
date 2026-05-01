@@ -1,5 +1,9 @@
 import type { Metadata } from "next"
 
+import { ClientLayout } from "@/components/layout/client-layout"
+import { AuroraBackground } from "@/components/ui/primitives/AuroraBackground"
+import { NoiseLayer } from "@/components/ui/primitives/NoiseLayer"
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
 export const metadata: Metadata = {
@@ -17,5 +21,13 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <div className="bg-slate-50 text-slate-900">{children}</div>
+  return (
+    <ClientLayout>
+      <div className="relative min-h-screen bg-[hsl(var(--color-bg))] text-[hsl(var(--color-text-primary))]">
+        <AuroraBackground />
+        <NoiseLayer />
+        <div className="relative z-10">{children}</div>
+      </div>
+    </ClientLayout>
+  )
 }

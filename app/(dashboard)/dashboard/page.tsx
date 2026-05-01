@@ -1,10 +1,8 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { MessageSquare } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DashboardOverviewClient } from "@/components/dashboard/DashboardOverviewClient"
 import { useSubscription as getSubscription } from "@/lib/hooks/use-subscription"
+import { PLAN_LIMITS } from "@/lib/stripe/config"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
@@ -65,82 +63,17 @@ export default async function DashboardHomePage() {
   const totalChatsThisMonth = sessionsCountRes.count ?? 0
   const totalMessages = messagesCountRes.count ?? 0
   const tokensThisMonth = (tokensRes.data ?? []).reduce((sum, record) => sum + (record.tokens_used ?? 0), 0)
+  const monthlyMessageLimit = PLAN_LIMITS[subscription.tier] ?? PLAN_LIMITS.free
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Welcome back, {name}</h2>
-        <p className="text-sm text-muted-foreground">Here is what happened in your workspace this month.</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Total chats this month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{totalChatsThisMonth}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Total messages</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{totalMessages}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Tokens used this month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{tokensThisMonth.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Plan tier</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge className="capitalize">{subscription.tier}</Badge>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent sessions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentSessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
-              <MessageSquare className="mb-3 size-8 text-muted-foreground" />
-              <p className="font-medium">No chats yet</p>
-              <p className="text-sm text-muted-foreground">Start your first conversation to see recent sessions.</p>
-              <Link href="/dashboard/chat" className="mt-4 text-sm font-medium text-primary underline">
-                Start chatting
-              </Link>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {recentSessions.map((session) => (
-                <li key={session.id}>
-                  <Link
-                    href={`/dashboard/chat?session=${session.id}`}
-                    className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50"
-                  >
-                    <span className="truncate font-medium">{session.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(session.created_at).toLocaleDateString()}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <DashboardOverviewClient
+      name={name}
+      planTier={subscription.tier}
+      totalChatsThisMonth={totalChatsThisMonth}
+      totalMessages={totalMessages}
+      tokensThisMonth={tokensThisMonth}
+      monthlyMessageLimit={monthlyMessageLimit}
+      recentSessions={recentSessions}
+    />
   )
 }

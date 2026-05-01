@@ -5,8 +5,13 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 
-export function GoogleButton() {
+type GoogleButtonProps = {
+  className?: string
+}
+
+export function GoogleButton({ className }: GoogleButtonProps) {
   const [loading, setLoading] = useState(false)
 
   const handleGoogleLogin = async () => {
@@ -33,8 +38,11 @@ export function GoogleButton() {
   return (
     <Button
       type="button"
-      variant="outline"
-      className="w-full"
+      variant="secondary"
+      className={cn(
+        "h-11 w-full justify-center gap-2 border border-[hsl(var(--color-border))] text-[hsl(var(--color-text-primary))] transition-all hover:-translate-y-0.5 hover:brightness-110",
+        className
+      )}
       onClick={handleGoogleLogin}
       disabled={loading}
     >

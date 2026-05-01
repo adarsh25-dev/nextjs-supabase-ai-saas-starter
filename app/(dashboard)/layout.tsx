@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { DashboardShell } from "@/components/dashboard/dashboard-shell"
+import { DashboardShell } from "@/components/dashboard/DashboardShell"
 import { useSubscription as getSubscription } from "@/lib/hooks/use-subscription"
 import { createClient } from "@/lib/supabase/server"
 
@@ -26,6 +26,12 @@ export default async function DashboardGroupLayout({
       .maybeSingle(),
     getSubscription(),
   ])
+  const { data: recentSessions } = await supabase
+    .from("chat_sessions")
+    .select("id, title, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(5)
 
   const displayName =
     profile?.full_name?.trim() || user.user_metadata?.full_name || user.email?.split("@")[0] || "User"
@@ -38,6 +44,7 @@ export default async function DashboardGroupLayout({
         avatarUrl: profile?.avatar_url || null,
       }}
       planTier={subscription.tier}
+      recentSessions={recentSessions ?? []}
     >
       {children}
     </DashboardShell>

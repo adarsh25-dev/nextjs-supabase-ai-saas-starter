@@ -1,5 +1,9 @@
 import type { Metadata } from "next"
+import { GeistMono } from "geist/font/mono"
+import { GeistSans } from "geist/font/sans"
+import "cal-sans"
 
+import { GlobalCommandPalette } from "@/components/layout/global-command-palette"
 import { PosthogProvider } from "@/components/providers/posthog-provider"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
@@ -25,10 +29,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased dark`}
+    >
+      <body className="min-h-full flex flex-col bg-[hsl(0_0%_0%)]">
         <PosthogProvider>
           {children}
+          <GlobalCommandPalette />
           <Toaster />
         </PosthogProvider>
       </body>
