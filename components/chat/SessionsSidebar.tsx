@@ -26,6 +26,27 @@ import { Input } from "@/components/ui/input"
 import { MagneticButton } from "@/components/ui/primitives/MagneticButton"
 import { cn } from "@/lib/utils"
 
+function formatSessionTimestamp(iso: string): string {
+  const d = new Date(iso)
+  const now = new Date()
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
+  if (isSameDay(d, now)) return time
+  if (isSameDay(d, yesterday)) return `Yesterday · ${time}`
+  const datePart =
+    d.getFullYear() === now.getFullYear()
+      ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  return `${datePart} · ${time}`
+}
+
 type SessionsSidebarProps = {
   sessions: ChatSession[]
   activeSessionId: string | null
@@ -284,34 +305,86 @@ function SessionRow({
   return (
     <div
       className={cn(
-        "group relative rounded-lg border border-transparent p-3 transition-all duration-200 hover:bg-[hsl(var(--color-text-primary)/0.04)]",
+        "group/row flex items-center gap-1 rounded-lg px-2 pr-0.5 transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
         isActive
-          ? "gradient-border border-[hsl(var(--color-border))] bg-[hsl(var(--color-text-primary)/0.05)]"
-          : ""
+          ? "bg-[hsl(var(--color-text-primary)/0.06)]"
+          : "hover:bg-[hsl(var(--color-text-primary)/0.04)]",
       )}
     >
-      <button type="button" className="w-full text-left" onClick={onSelect}>
-        <p className="truncate text-sm text-[hsl(var(--color-text-primary))]">{session.title}</p>
-        <p className="mt-1 truncate text-xs text-[hsl(var(--color-text-secondary))]">
-          Continue this conversation...
+      <button
+        type="button"
+        onClick={onSelect}
+        className="min-w-0 flex-1 rounded-md py-2 pl-0.5 pr-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-accent))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-bg-elevated))]"
+      >
+        <p
+          className={cn(
+            "truncate text-[0.8125rem] leading-snug transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            isActive
+              ? "font-medium text-[hsl(var(--color-accent-soft))]"
+              : "text-[hsl(var(--color-text-primary))]",
+          )}
+        >
+          {session.title}
         </p>
+        <time
+          dateTime={session.created_at}
+          className="mt-0.5 block truncate font-mono text-[10px] tabular-nums text-[hsl(var(--color-text-secondary)/0.85)]"
+        >
+          {formatSessionTimestamp(session.created_at)}
+        </time>
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2 size-7 opacity-0 transition-opacity group-hover:opacity-100"
+            className={cn(
+              "size-7 shrink-0 rounded-md",
+              "text-[hsl(var(--color-text-secondary))]",
+              "opacity-0 transition-[opacity,background-color,color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/row:opacity-100 group-focus-within/row:opacity-100",
+              "hover:bg-[hsl(var(--color-text-primary)/0.06)] hover:text-[hsl(var(--color-text-primary))]",
+              "focus-visible:opacity-100 focus-visible:ring-0 focus-visible:ring-offset-0",
+              "focus-visible:bg-[hsl(var(--color-text-primary)/0.08)]",
+              "data-[state=open]:bg-[hsl(var(--color-text-primary)/0.06)] data-[state=open]:ring-0",
+              isActive && "opacity-100",
+            )}
             aria-label="Session actions"
           >
-            <MoreHorizontal className="size-4" />
+            <MoreHorizontal className="size-3.5" strokeWidth={2} />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="glass border border-[hsl(var(--color-border))]" align="end">
-          <DropdownMenuItem disabled={isPending} onSelect={onRename}>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={4}
+          className={cn(
+            "min-w-[7.25rem] rounded-lg border border-[hsl(var(--color-border))] p-0.5",
+            "bg-[hsl(var(--color-bg-elevated))]",
+          )}
+        >
+          <DropdownMenuItem
+            disabled={isPending}
+            onSelect={onRename}
+            className={cn(
+              "rounded-md px-2 py-1.5 text-xs",
+              "!text-[hsl(var(--color-text-primary))]",
+              "hover:!bg-[hsl(var(--color-text-primary)/0.08)] hover:!text-[hsl(var(--color-text-primary))]",
+              "focus:!bg-[hsl(var(--color-text-primary)/0.08)] focus:!text-[hsl(var(--color-text-primary))]",
+              "data-[highlighted]:!bg-[hsl(var(--color-text-primary)/0.08)] data-[highlighted]:!text-[hsl(var(--color-text-primary))]",
+            )}
+          >
             Rename
           </DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDelete}>
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={onDelete}
+            className={cn(
+              "rounded-md px-2 py-1.5 text-xs",
+              "hover:!bg-[hsl(var(--color-danger)/0.12)] hover:!text-[hsl(var(--color-danger))]",
+              "focus:!bg-[hsl(var(--color-danger)/0.12)] focus:!text-[hsl(var(--color-danger))]",
+              "data-[highlighted]:!bg-[hsl(var(--color-danger)/0.12)] data-[highlighted]:!text-[hsl(var(--color-danger))]",
+            )}
+          >
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

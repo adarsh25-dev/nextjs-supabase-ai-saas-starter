@@ -129,7 +129,7 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
               className={cn(
                 "pr-1 text-[11px] text-[hsl(var(--color-text-secondary))]",
                 "opacity-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                "group-hover/msg:opacity-100 group-focus-within/msg:opacity-100",
+                "group-hover/msg:opacity-100",
               )}
             >
               {mounted ? formatChatDateTime(message.created_at) : ""}
@@ -241,13 +241,7 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
               </div>
 
               {!isStreaming ? (
-                <div
-                  className={cn(
-                    "mt-2 flex flex-wrap items-center gap-0.5",
-                    "opacity-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                    "group-hover/msg:opacity-100 group-focus-within/msg:opacity-100",
-                  )}
-                >
+                <div className="mt-2 flex flex-wrap items-center gap-0.5">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -301,7 +295,7 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
                 className={cn(
                   "mt-1 text-[11px] text-[hsl(var(--color-text-secondary))]",
                   "opacity-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                  "group-hover/msg:opacity-100 group-focus-within/msg:opacity-100",
+                  "group-hover/msg:opacity-100",
                 )}
               >
                 {mounted ? formatChatDateTime(message.created_at) : ""}
