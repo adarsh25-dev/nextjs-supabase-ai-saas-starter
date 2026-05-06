@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { MagneticButton } from "@/components/ui/primitives/MagneticButton"
 import { trackEvent } from "@/lib/analytics/events"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 type Plan = {
@@ -93,6 +94,7 @@ export function PricingGrid({ plans, currentTier, mode = "pricing" }: PricingGri
       window.location.href = payload.url
     } catch (error) {
       console.error(error)
+      toast.error(error instanceof Error ? error.message : "Something went wrong. Try again.")
       setLoadingPlan(null)
     }
   }

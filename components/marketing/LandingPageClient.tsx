@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils"
 import { Footer } from "@/components/marketing/Footer"
 import { Nav } from "@/components/marketing/Nav"
 import { motion, useInView, useScroll, useTransform } from "framer-motion"
+import { toast } from "sonner"
 
 const HeroOrb = dynamic(
   () => import("@/components/marketing/HeroOrb").then((mod) => mod.HeroOrb),
@@ -78,7 +79,7 @@ const faqs = [
   },
 ]
 
-const stackLogos = ["Vercel", "Supabase", "Gemini", "Stripe", "Anthropic", "Tailwind", "Next.js", "TypeScript"]
+const stackLogos = ["Vercel", "Supabase", "Gemma 4", "Stripe", "NVIDIA", "Tailwind", "Next.js", "TypeScript"]
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(false)
@@ -555,9 +556,13 @@ function CodePanel({ codeLines }: { codeLines: string[] }) {
 
   const copyCode = async () => {
     const plain = codeLines.map((line) => line.replace(/<[^>]+>/g, "")).join("\n")
-    await navigator.clipboard.writeText(plain)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1300)
+    try {
+      await navigator.clipboard.writeText(plain)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1300)
+    } catch {
+      toast.error("Could not copy to clipboard.")
+    }
   }
 
   return (

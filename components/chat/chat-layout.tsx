@@ -91,7 +91,7 @@ export function ChatLayout({
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] min-h-0 overflow-hidden">
       <aside className="hidden h-full w-[280px] shrink-0 lg:block">
         <SessionsSidebar
           sessions={sessions}
@@ -122,7 +122,7 @@ export function ChatLayout({
         </Drawer.Portal>
       </Drawer.Root>
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ChatInterface
           key={activeSessionId ?? "new"}
           sessionId={activeSessionId}

@@ -1,13 +1,18 @@
 import { codeToHtml } from "shiki";
 
-const chatSnippet = `import { streamText } from "ai"
-import { google } from "@ai-sdk/google"
+const chatSnippet = `import { createOpenAI } from "@ai-sdk/openai"
+import { streamText } from "ai"
+
+const nvidia = createOpenAI({
+  apiKey: process.env.NVIDIA_API_KEY,
+  baseURL: process.env.NVIDIA_BASE_URL ?? "https://integrate.api.nvidia.com/v1",
+})
 
 export async function POST(req: Request) {
   const { messages } = await req.json()
 
   const result = streamText({
-    model: google("gemini-2.5-flash"),
+    model: nvidia.chat(process.env.NVIDIA_MODEL_DEFAULT ?? "google/gemma-4-31b-it"),
     messages,
   })
 

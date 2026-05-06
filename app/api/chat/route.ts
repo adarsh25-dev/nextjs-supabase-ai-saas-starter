@@ -1,25 +1,36 @@
 import * as Sentry from "@sentry/nextjs";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { getRateLimitForUser } from "@/lib/ratelimit";
-import { PLAN_LIMITS } from "@/lib/stripe/config";
+import {
+  CHAT_MAX_OUTPUT_TOKENS,
+  PLAN_LIMITS,
+  type PlanTier,
+} from "@/lib/stripe/config";
 
 const chatBodySchema = z.object({
   sessionId: z.string().uuid().optional(),
   messages: z.array(z.any()).min(1),
 });
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY ?? "gemini-placeholder",
+const nvidia = createOpenAI({
+  apiKey: process.env.NVIDIA_API_KEY ?? "nvidia-placeholder",
+  baseURL: process.env.NVIDIA_BASE_URL ?? "https://integrate.api.nvidia.com/v1",
 });
 
-const GEMINI_MODEL_DEFAULT =
-  process.env.GEMINI_MODEL_DEFAULT ?? "gemini-2.5-flash";
-const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO ?? "gemini-2.5-flash";
+const NVIDIA_MODEL_DEFAULT =
+  process.env.NVIDIA_MODEL_DEFAULT ?? "google/gemma-4-31b-it";
+const NVIDIA_MODEL_PRO = process.env.NVIDIA_MODEL_PRO ?? "google/gemma-4-31b-it";
+
+const GEMMA_CHAT_SYSTEM_PROMPT = `You are an elite Next.js and Supabase full-stack architect embedded inside a premium developer SaaS product.
+
+You are powered by Google's Gemma 4. When asked what model you are, who powers you, or similar, answer clearly that you run on Gemma 4.
+
+Be brutally concise. Prefer tight bullets and minimal prose. When code is required, ship highly optimized TypeScript and React for Next.js 14 App Router: strict types, early returns, Zod for validation, Supabase typed-client patterns, and RLS-aware data access. No filler, no apologies for brevity.`;
 
 export async function POST(request: Request) {
   try {
@@ -33,9 +44,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.NVIDIA_API_KEY) {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY is not configured." },
+        { error: "NVIDIA_API_KEY is not configured." },
         { status: 500 },
       );
     }
@@ -90,21 +101,22 @@ export async function POST(request: Request) {
       Sentry.captureException(subscriptionError);
     }
 
-    const tier =
+    const planTier: PlanTier | "free" =
       subscription &&
       (subscription.status === "active" || subscription.status === "trialing")
         ? subscription.plan_tier
         : "free";
 
-    const rate = await getRateLimitForUser(user.id, tier);
+    const rate = await getRateLimitForUser(user.id, planTier);
     if (!rate.success) {
       return NextResponse.json(
         {
-          error:
-            "Rate limit exceeded. Please try again later or upgrade your plan.",
+          error: "Rate limit exceeded",
+          message: rateLimitUpgradeMessage(planTier),
+          tier: planTier,
           limit: rate.limit,
           remaining: rate.remaining,
-          upgradeUrl: "/pricing",
+          upgradeUrl: "/billing",
         },
         { status: 429 },
       );
@@ -121,13 +133,14 @@ export async function POST(request: Request) {
       throw usageCountError;
     }
 
-    const limit = PLAN_LIMITS[tier];
+    const limit = PLAN_LIMITS[planTier];
     if ((monthlyMessagesCount ?? 0) >= limit) {
       return NextResponse.json(
         {
-          error:
-            "Monthly message limit reached. Upgrade your plan to continue chatting.",
-          upgradeUrl: "/pricing",
+          error: "Monthly message limit reached",
+          message:
+            "You have used all chat messages included in your plan this month. Upgrade to continue.",
+          upgradeUrl: "/billing",
         },
         { status: 403 },
       );
@@ -198,14 +211,26 @@ export async function POST(request: Request) {
     }
 
     const model =
-      tier === "pro" || tier === "business"
-        ? GEMINI_MODEL_PRO
-        : GEMINI_MODEL_DEFAULT;
+      planTier === "pro" || planTier === "business"
+        ? NVIDIA_MODEL_PRO
+        : NVIDIA_MODEL_DEFAULT;
+
+    const maxOutputTokens = CHAT_MAX_OUTPUT_TOKENS[planTier];
+
+    const conversationMessages = normalizedMessages.filter(
+      (message) => message.role !== "system",
+    );
 
     const result = streamText({
-      model: google(model),
+      // NVIDIA's OpenAI-compatible endpoint supports Chat Completions.
+      // Using `chat(...)` avoids the OpenAI Responses API path.
+      model: nvidia.chat(model),
+      system: GEMMA_CHAT_SYSTEM_PROMPT,
       maxRetries: 0,
-      messages: normalizedMessages.map((message) => ({
+      temperature: 0.2,
+      topP: 0.95,
+      maxOutputTokens,
+      messages: conversationMessages.map((message) => ({
         role: message.role,
         content: message.content,
       })),
@@ -250,25 +275,24 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = getErrorMessage(error);
-    if (isGeminiPermissionDeniedError(error)) {
+    if (isNvidiaPermissionDeniedError(error)) {
       return NextResponse.json(
         {
           error:
-            "Gemini project access denied for the configured model/key. Use a model your project is allowed to access (set GEMINI_MODEL_DEFAULT / GEMINI_MODEL_PRO).",
+            "NVIDIA project access denied for the configured model/key. Use a model your key is allowed to access (set NVIDIA_MODEL_DEFAULT / NVIDIA_MODEL_PRO).",
           details: message,
-          docs: "https://ai.google.dev/gemini-api/docs/models",
+          docs: "https://build.nvidia.com/settings/api-keys",
         },
         { status: 403 },
       );
     }
-    if (isGeminiQuotaError(error)) {
+    if (isNvidiaQuotaError(error)) {
       return NextResponse.json(
         {
           error:
-            "Gemini quota exceeded for this API key/project. Add billing or use a key/project with available Gemini quota.",
+            "NVIDIA quota or rate limit exceeded for this API key/project. Use a key/project with available quota.",
           details: message,
-          docs: "https://ai.google.dev/gemini-api/docs/rate-limits",
-          usage: "https://ai.dev/rate-limit",
+          docs: "https://build.nvidia.com/settings/api-keys",
         },
         { status: 429 },
       );
@@ -282,6 +306,18 @@ export async function POST(request: Request) {
   }
 }
 
+function rateLimitUpgradeMessage(planTier: PlanTier | "free"): string {
+  switch (planTier) {
+    case "free":
+      return "You have hit the Free plan chat rate limit. Upgrade to Starter or higher for higher daily limits and longer Gemma 4 replies.";
+    case "starter":
+      return "You have hit the Starter plan rate limit. Upgrade to Pro or Business for much higher daily throughput.";
+    case "pro":
+    case "business":
+      return "You have hit the maximum request rate for your plan. Try again in a moment, or contact support if you need higher throughput.";
+  }
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
@@ -292,22 +328,23 @@ function getErrorMessage(error: unknown): string {
   }
 }
 
-function isGeminiQuotaError(error: unknown): boolean {
+function isNvidiaQuotaError(error: unknown): boolean {
   const message = getErrorMessage(error).toLowerCase();
   return (
     message.includes("quota exceeded") ||
     message.includes("exceeded your current quota") ||
-    message.includes("rate-limits") ||
-    message.includes("generate_content_free_tier_requests")
+    message.includes("rate limit") ||
+    message.includes("too many requests")
   );
 }
 
-function isGeminiPermissionDeniedError(error: unknown): boolean {
+function isNvidiaPermissionDeniedError(error: unknown): boolean {
   const message = getErrorMessage(error).toLowerCase();
   return (
     message.includes("permission_denied") ||
     message.includes("denied access") ||
-    message.includes("your project has been denied access")
+    message.includes("unauthorized") ||
+    message.includes("invalid api key")
   );
 }
 

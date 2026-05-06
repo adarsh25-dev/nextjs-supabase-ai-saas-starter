@@ -21,7 +21,7 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     price: 29,
     priceId: process.env.STRIPE_PRICE_PRO,
     yearlyPriceId: process.env.STRIPE_PRICE_PRO_YEARLY,
-    features: ["1,000 AI messages/month", "priority support", "faster models"],
+    features: ["1,000 AI messages/month", "priority support", "Gemma 4 access"],
   },
   business: {
     name: "Business",
@@ -37,6 +37,14 @@ export const PLAN_LIMITS: Record<PlanTier | "free", number> = {
   starter: 100,
   pro: 1000,
   business: 10000,
+}
+
+/** Max completion tokens per chat turn, aligned with Stripe plan tier (Gemma 4 / billing). */
+export const CHAT_MAX_OUTPUT_TOKENS: Record<PlanTier | "free", number> = {
+  free: 500,
+  starter: 1000,
+  pro: 4000,
+  business: 4000,
 }
 
 const planByPrice: Array<[string, PlanTier]> = Object.entries(PLANS).flatMap(([tier, plan]) =>

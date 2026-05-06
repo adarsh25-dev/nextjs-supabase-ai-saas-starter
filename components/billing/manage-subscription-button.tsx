@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 export function ManageSubscriptionButton() {
   const [loading, setLoading] = useState(false)
@@ -23,6 +24,7 @@ export function ManageSubscriptionButton() {
       window.location.href = payload.url
     } catch (error) {
       console.error(error)
+      toast.error(error instanceof Error ? error.message : "Unable to open billing portal.")
       setLoading(false)
     }
   }

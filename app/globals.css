@@ -12,6 +12,11 @@
   --color-bg: 36 23% 4%;
   --color-bg-elevated: 34 21% 8%;
   --color-surface: 33 18% 11%;
+  /* Code blocks in chat: unified near-black card (reference UI) */
+  --color-code-block: 0 0% 5%;
+  --color-code-syntax-peach: 24 92% 74%;
+  /* Legacy: editor panel tint (unused in chat card; kept for other surfaces) */
+  --color-editor-panel: 220 18% 6%;
   --color-border: 34 17% 24%;
   --color-text-primary: 41 36% 92%;
   --color-text-secondary: 36 22% 72%;
@@ -25,6 +30,7 @@
   --radius: 1rem;
   --shadow-glow: 0 0 60px -15px hsl(16 60% 60% / 0.35);
   --shadow-soft: 0 20px 50px -30px hsl(16 40% 20% / 0.65);
+  --scrollbar-size: 6px;
 
   --background: hsl(var(--color-bg));
   --foreground: hsl(var(--color-text-primary));
@@ -158,6 +164,26 @@
 @layer base {
   * {
     @apply border-border outline-none;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--color-border)) hsl(var(--color-bg));
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--color-bg));
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: hsl(var(--color-border));
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--color-surface));
   }
 
   html {
@@ -191,6 +217,167 @@
 
   :focus-visible {
     @apply ring-2 ring-[hsl(var(--color-accent))] ring-offset-0;
+  }
+
+  button:not(:disabled),
+  summary,
+  a[href],
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer components {
+  /**
+   * Assistant chat markdown: typography plugin is not enabled, so `prose-*` utilities are inert.
+   * Global `h1–h6` use display tracking (-0.04em) which tightens spaces between words in long headings.
+   * Scope readable body typography here; do not target fenced `pre` layout (handled in Message.tsx).
+   */
+  .chat-markdown {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    letter-spacing: normal;
+    word-spacing: normal;
+    color: hsl(var(--color-text-primary));
+    text-rendering: optimizeLegibility;
+  }
+
+  .chat-markdown :where(p) {
+    margin-block: 0.75rem 1rem;
+    line-height: 1.65;
+    letter-spacing: normal;
+    word-spacing: normal;
+    color: hsl(var(--color-text-primary));
+  }
+
+  .chat-markdown :where(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    word-spacing: normal;
+    color: hsl(var(--color-text-primary));
+    line-height: 1.35;
+  }
+
+  .chat-markdown :where(h1) {
+    font-size: 1.5rem;
+    margin-block: 1.25rem 0.5rem;
+  }
+
+  .chat-markdown :where(h2) {
+    font-size: 1.25rem;
+    margin-block: 1.25rem 0.5rem;
+  }
+
+  .chat-markdown :where(h3) {
+    font-size: 1.1rem;
+    margin-block: 1rem 0.4rem;
+  }
+
+  .chat-markdown :where(h4) {
+    font-size: 1rem;
+    margin-block: 0.85rem 0.35rem;
+  }
+
+  .chat-markdown :where(h5, h6) {
+    font-size: 0.9375rem;
+    margin-block: 0.75rem 0.3rem;
+  }
+
+  .chat-markdown :where(h1:first-child, h2:first-child, h3:first-child) {
+    margin-block-start: 0;
+  }
+
+  .chat-markdown :where(strong) {
+    font-weight: 500;
+    letter-spacing: normal;
+    word-spacing: normal;
+    color: hsl(var(--color-text-primary));
+  }
+
+  .chat-markdown :where(ul) {
+    list-style-type: disc;
+    margin-block: 0.75rem 1rem;
+    padding-inline-start: 1.35rem;
+  }
+
+  .chat-markdown :where(ol) {
+    list-style-type: decimal;
+    margin-block: 0.75rem 1rem;
+    padding-inline-start: 1.35rem;
+  }
+
+  .chat-markdown :where(li) {
+    margin-block: 0.375rem;
+    line-height: 1.6;
+    letter-spacing: normal;
+    word-spacing: normal;
+    color: hsl(var(--color-text-primary));
+  }
+
+  .chat-markdown :where(li > p) {
+    margin-block: 0.375rem;
+  }
+
+  .chat-markdown :where(blockquote) {
+    margin-block: 1rem;
+    padding-inline-start: 1rem;
+    border-inline-start: 3px solid hsl(var(--color-accent)/0.45);
+    color: hsl(var(--color-text-secondary));
+  }
+
+  .chat-markdown :where(a) {
+    color: hsl(var(--color-accent-soft));
+    text-underline-offset: 3px;
+    transition: color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .chat-markdown :where(a:hover) {
+    color: hsl(var(--color-accent));
+  }
+
+  .chat-markdown :where(:not(pre) > code) {
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8125rem;
+    letter-spacing: normal;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+    border: 1px solid hsl(var(--color-border));
+    background: hsl(var(--color-text-primary)/0.06);
+    color: hsl(var(--color-accent-soft));
+  }
+
+  .chat-markdown :where(span) {
+    letter-spacing: normal;
+    word-spacing: normal;
+    color: inherit;
+  }
+
+  .chat-markdown :where(hr) {
+    margin-block: 1.25rem;
+    border: 0;
+    border-top: 1px solid hsl(var(--color-border));
+  }
+
+  .chat-code-block pre code.hljs {
+    color: hsl(var(--color-text-primary));
+    background: transparent;
+  }
+
+  .chat-code-block pre code.hljs .hljs-keyword,
+  .chat-code-block pre code.hljs .hljs-built_in,
+  .chat-code-block pre code.hljs .hljs-attr,
+  .chat-code-block pre code.hljs .hljs-name,
+  .chat-code-block pre code.hljs .hljs-variable.language_,
+  .chat-code-block pre code.hljs .hljs-title.function_,
+  .chat-code-block pre code.hljs .hljs-meta.keyword {
+    color: hsl(var(--color-code-syntax-peach));
   }
 }
 

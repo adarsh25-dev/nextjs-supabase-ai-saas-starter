@@ -69,7 +69,7 @@ export function DashboardShell({ children, user, planTier, recentSessions }: Das
   }
 
   return (
-    <div className="min-h-screen bg-black text-[hsl(var(--color-text-primary))]">
+    <div className="min-h-screen bg-[hsl(var(--color-bg))] text-[hsl(var(--color-text-primary))]">
       <CommandPalette
         recentSessions={recentSessions}
         navItems={navItems}
@@ -103,6 +103,7 @@ export function DashboardShell({ children, user, planTier, recentSessions }: Das
           <main
             className={cn(
               "w-full flex-1",
+              isChatRoute && "flex min-h-0 flex-col overflow-hidden",
               isChatRoute ? "p-0" : "px-4 py-4 md:px-8 md:py-6",
               isChatRoute ? "max-w-none" : "mx-auto max-w-7xl"
             )}
@@ -111,10 +112,11 @@ export function DashboardShell({ children, user, planTier, recentSessions }: Das
               <motion.div
                 key={pathname}
                 layout
-                      initial={{ opacity: 0, y: 8 }}
+                className={cn(isChatRoute && "flex min-h-0 flex-1 flex-col")}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               >
                 {children}
               </motion.div>

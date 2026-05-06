@@ -53,7 +53,7 @@ export default function PricingPage() {
           {[
             ["Messages / month", "100", "1,000", "10,000"],
             ["Priority support", "—", "Yes", "Yes"],
-            ["Advanced models", "—", "Yes", "Yes"],
+            ["Gemma 4 access", "—", "Yes", "Yes"],
             ["Team seats", "—", "—", "Yes"],
           ].map((row) => (
             <div

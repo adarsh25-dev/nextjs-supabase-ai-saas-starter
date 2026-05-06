@@ -336,7 +336,7 @@ export function SettingsTabs({
                         Delete account
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="glass border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))]">
+                    <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Delete account?</DialogTitle>
                         <DialogDescription>This action is permanent and cannot be undone.</DialogDescription>
@@ -441,7 +441,7 @@ function Switch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-6 w-11 items-center rounded-full border transition-colors duration-200",
+        "relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full border transition-colors duration-200",
         checked
           ? "border-[hsl(var(--color-accent-soft))] bg-[hsl(var(--color-accent)/0.35)]"
           : "border-[hsl(var(--color-border))] bg-[hsl(var(--color-text-primary)/0.1)]"

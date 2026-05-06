@@ -15,6 +15,7 @@ type ChatInputProps = {
   isDisabled: boolean;
   onStop: () => void;
   onFocusRequest?: (focus: () => void) => void;
+  className?: string;
 };
 
 function estimateTokens(text: string) {
@@ -29,6 +30,7 @@ export function ChatInput({
   isDisabled,
   onStop,
   onFocusRequest,
+  className,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const tokenCount = useMemo(() => estimateTokens(value), [value]);
@@ -54,9 +56,9 @@ export function ChatInput({
   };
 
   return (
-    <div className="sticky bottom-0  bg-black/30 px-3 pb-6 pt-4 backdrop-blur">
-      <div className="mx-auto w-full max-w-3xl">
-        <div className="gradient-border rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-3 [&_*:focus-visible]:ring-0 [&_*:focus-visible]:ring-transparent [&_*:focus-visible]:border-transparent">
+    <div className={cn("px-3 pb-5 pt-4", className)}>
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="rounded-[1.4rem] border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-3 shadow-[0_0_60px_-15px_hsl(var(--color-accent)/0.28)] ring-1 ring-[hsl(var(--color-border)/0.5)] [&_*:focus-visible]:ring-0 [&_*:focus-visible]:ring-transparent [&_*:focus-visible]:border-transparent">
           <textarea
             ref={textareaRef}
             value={value}
@@ -108,7 +110,7 @@ export function ChatInput({
                     : { duration: 0.2 }
                 }
                 className={cn(
-                  "inline-flex size-9 items-center justify-center rounded-full transition-all duration-200",
+                  "inline-flex size-9 cursor-pointer items-center justify-center rounded-full transition-all duration-200",
                   isStreaming
                     ? "border border-[hsl(var(--color-accent)/0.8)] bg-[hsl(var(--color-accent)/0.18)] text-[hsl(var(--color-accent-soft))]"
                     : "bg-[image:var(--gradient-ember)] text-[hsl(var(--color-accent-foreground))] shadow-[0_0_24px_-10px_hsl(var(--color-accent)/0.9)]",

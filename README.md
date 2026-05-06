@@ -5,7 +5,7 @@
 [![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/new)
 [![GitHub stars](https://img.shields.io/github/stars/adarshparmar/nextjs-supabase-ai-saas-starter?style=social)](https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter)
 
-Production-ready SaaS starter built for fast shipping and real-world reliability: Supabase auth, Stripe subscriptions, Gemini-powered streaming chat, usage limits, transactional email, analytics, and monitoring.
+Production-ready SaaS starter built for fast shipping and real-world reliability: Supabase auth, Stripe subscriptions, Gemma 4-powered streaming chat, usage limits, transactional email, analytics, and monitoring.
 
 ## Screenshots
 
@@ -18,11 +18,17 @@ Production-ready SaaS starter built for fast shipping and real-world reliability
 - **UI**: Tailwind CSS, Framer Motion, Radix primitives, custom design system
 - **Auth & DB**: Supabase Auth + Postgres + RLS + Storage
 - **Billing**: Stripe Checkout + Billing Portal + Webhooks
-- **AI**: Gemini (`@ai-sdk/google`) + Vercel AI SDK streaming
+- **AI**: Gemma 4 (`@ai-sdk/openai` compatible via NVIDIA API) + Vercel AI SDK streaming
 - **Rate limiting**: Upstash Redis + `@upstash/ratelimit`
 - **Email**: Resend + React Email templates
 - **Observability**: Sentry
 - **Product analytics**: PostHog
+
+### 🧠 Why Gemma 4?
+
+- **Coding depth**: Gemma 4 is tuned for strong reasoning and code generation, so this starter can showcase state-of-the-art implementation help instead of a thin generic LLM wrapper.
+- **Deterministic product behavior**: The stack prompt and low-temperature settings (`temperature` / `topP`) are tuned for consistent, technical answers that read like a senior engineer—not marketing fluff.
+- **Billing-aligned output**: Per-tier `maxOutputTokens` caps are wired to Stripe plan tiers, so usage, rate limits, and completion length stay predictable for demos and production-style cost control.
 
 ## Route Map
 
@@ -41,7 +47,7 @@ Production-ready SaaS starter built for fast shipping and real-world reliability
 
 - Supabase authentication with profile management and avatar uploads
 - Stripe subscription lifecycle (checkout, billing portal, webhook sync)
-- Gemini streaming chat with persistent sessions and message history
+- Gemma 4 streaming chat with persistent sessions and message history
 - Per-tier usage limits + monthly tracking + rate limiting
 - Branded loading/error/empty states
 - PostHog analytics hooks for product events
@@ -67,7 +73,7 @@ Use `.env.example` as the source of truth.
 - **Core**: `NEXT_PUBLIC_SITE_URL`
 - **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - **Stripe**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Stripe price IDs
-- **AI**: `GEMINI_API_KEY`, optional `GEMINI_MODEL_DEFAULT`, `GEMINI_MODEL_PRO`
+- **AI**: `NVIDIA_API_KEY`, optional `NVIDIA_BASE_URL`, `NVIDIA_MODEL_DEFAULT`, `NVIDIA_MODEL_PRO`
 - **Email**: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 - **Monitoring**: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`
 - **Analytics**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
@@ -81,7 +87,7 @@ flowchart LR
   user[UserBrowser] --> nextApp[NextApp]
   nextApp --> supabase[(Supabase)]
   nextApp --> stripe[StripeAPI]
-  nextApp --> gemini[GeminiAPI]
+  nextApp --> gemma4[Gemma 4 via NVIDIA API]
   nextApp --> upstash[UpstashRedis]
   nextApp --> resend[ResendAPI]
   nextApp --> posthog[PostHog]
@@ -110,7 +116,7 @@ scripts/              # Developer scripts
 3. Set Stripe webhook endpoint to `/api/stripe/webhook`.
 4. Configure Sentry DSN(s) and project metadata.
 5. Configure PostHog key + host.
-6. Set `GEMINI_API_KEY` and optional model overrides.
+6. Set `NVIDIA_API_KEY` and optional model overrides.
 7. Verify auth redirect URLs in Supabase and Stripe return URLs.
 
 ## Deployment

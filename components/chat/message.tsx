@@ -1,16 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import {
-  Bot,
-  Copy,
-  ExternalLink,
-  FileText,
-  RefreshCcw,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-} from "lucide-react"
+import { Bot, Code2, Copy, ExternalLink, FileText, RefreshCcw } from "lucide-react"
 import { Drawer } from "vaul"
 import ReactMarkdown from "react-markdown"
 import rehypeHighlight from "rehype-highlight"
@@ -18,6 +9,7 @@ import remarkGfm from "remark-gfm"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import type { ChatMessage } from "@/components/chat/types"
 
 type MessageProps = {
@@ -54,11 +46,37 @@ function extractCitations(content: string): Citation[] {
   return citations
 }
 
-function codeTitle(className?: string) {
-  if (!className) return "snippet.txt"
-  const language = className.replace("language-", "").trim()
-  if (!language) return "snippet.txt"
-  return `snippet.${language}`
+function parseFenceLanguage(className?: string): string | null {
+  if (!className) return null
+  const token = className.split(/\s+/).find((part) => part.startsWith("language-"))
+  if (!token) return null
+  const raw = token.slice("language-".length).trim().toLowerCase()
+  return raw || null
+}
+
+const SHELL_LANGUAGE_LABEL = "Bash"
+
+function codeBlockLanguageLabel(className?: string): string {
+  const lang = parseFenceLanguage(className)
+  if (!lang) return "Plain text"
+  if (lang === "bash" || lang === "sh" || lang === "shell" || lang === "zsh") {
+    return SHELL_LANGUAGE_LABEL
+  }
+  return lang
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+function formatChatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  })
 }
 
 function extractCodeText(node: unknown): string {
@@ -83,35 +101,63 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
   }, [])
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1200)
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1200)
+    } catch {
+      toast.error("Could not copy to clipboard.")
+    }
   }
 
   return (
     <>
-      <div className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")}>
-        <div className={cn("space-y-2", isUser ? "max-w-[80%]" : "w-full")}>
-          {isUser ? (
-            <div className="rounded-2xl rounded-tr-md bg-[hsl(var(--color-text-primary)/0.06)] px-4 py-3 text-sm text-[hsl(var(--color-text-primary))]">
-              <div className="mb-1 inline-flex items-center gap-2 text-xs text-[hsl(var(--color-text-secondary))]">
-                <User className="size-3.5" />
-                You
-              </div>
-              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+      <div
+        className={cn(
+          "group/msg w-full",
+          isUser ? "flex justify-end py-4 md:py-5" : "flex justify-start py-4 md:py-5",
+        )}
+      >
+        {isUser ? (
+          <div className="flex max-w-full flex-col items-end gap-1">
+            <div className="max-w-[min(100%,42rem)] rounded-[1.625rem] bg-[hsl(var(--color-text-primary)/0.08)] px-4 py-2.5 text-[hsl(var(--color-text-primary))] md:px-5 md:py-3">
+              <p className="whitespace-pre-wrap break-words text-[0.9375rem] leading-relaxed">
+                {message.content}
+              </p>
             </div>
-          ) : (
-            <div className="w-full">
-              <div className="mb-2 inline-flex items-center gap-2 text-xs text-[hsl(var(--color-text-secondary))]">
-                <span className="relative inline-flex size-6 items-center justify-center rounded-full bg-[hsl(var(--color-accent)/0.2)]">
-                  <Bot className="size-3.5 text-[hsl(var(--color-accent-soft))]" />
-                  {isStreaming ? (
-                    <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[hsl(var(--color-accent-soft))] animate-pulse" />
-                  ) : null}
-                </span>
-                Assistant
-              </div>
-              <div className="prose prose-sm max-w-none text-[hsl(var(--color-text-primary))] prose-headings:font-display prose-headings:tracking-tight prose-p:text-[hsl(var(--color-text-primary))] prose-a:text-[hsl(var(--color-accent-soft))] prose-a:transition-colors prose-a:duration-200 hover:prose-a:text-[hsl(var(--color-accent))] prose-code:rounded prose-code:bg-[hsl(var(--color-text-primary)/0.06)] prose-code:px-1.5 prose-code:py-0.5 prose-code:before:content-none prose-code:after:content-none prose-li:my-1">
+            <p
+              className={cn(
+                "pr-1 text-[11px] text-[hsl(var(--color-text-secondary))]",
+                "opacity-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "group-hover/msg:opacity-100 group-focus-within/msg:opacity-100",
+              )}
+            >
+              {mounted ? formatChatDateTime(message.created_at) : ""}
+            </p>
+          </div>
+        ) : (
+          <div className="flex w-full min-w-0 gap-3 md:gap-4">
+            <div className="flex shrink-0 flex-col items-center pt-0.5">
+              <span
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full bg-[hsl(var(--color-text-primary)/0.08)]",
+                  "text-[hsl(var(--color-accent-soft))]",
+                  isStreaming && "ring-2 ring-[hsl(var(--color-accent)/0.25)]",
+                )}
+                aria-hidden
+              >
+                <Bot className="size-[1.125rem]" strokeWidth={1.75} />
+              </span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div
+                className={cn(
+                  "chat-markdown max-w-none px-0 py-0 text-[hsl(var(--color-text-primary))]",
+                  "[&_pre]:m-0 [&_pre]:bg-transparent [&_pre]:p-0",
+                  "[&_pre_code.hljs]:bg-transparent",
+                )}
+              >
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
@@ -125,25 +171,62 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
                         typeof (codeChild as { props?: { className?: string } }).props?.className === "string"
                           ? (codeChild as { props: { className: string } }).props.className
                           : undefined
-                      const title = codeTitle(className)
+                      const langLabel = codeBlockLanguageLabel(className)
                       const codeText = extractCodeText(children).replace(/\n$/, "")
                       return (
-                        <div className="my-4 overflow-hidden rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))]">
-                        <div className="flex items-center justify-between border-b border-[hsl(var(--color-border))] bg-black/20 px-3 py-2 text-[11px] text-[hsl(var(--color-text-secondary))]">
-                            <span>{title}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-6"
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(codeText)
-                            }}
+                        <div
+                          className={cn(
+                            "chat-code-block my-6 rounded-2xl border border-[hsl(var(--color-border)/0.35)]",
+                            "bg-[hsl(var(--color-code-block))] p-4 md:rounded-[1.25rem] md:p-5",
+                            "shadow-[0_12px_48px_-20px_hsl(var(--color-accent)/0.14)]",
+                          )}
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <Code2
+                                className="size-[1.125rem] shrink-0 text-[hsl(var(--color-text-primary))]"
+                                strokeWidth={2}
+                                aria-hidden
+                              />
+                              <span className="truncate font-sans text-[0.9375rem] font-semibold text-[hsl(var(--color-text-primary))]">
+                                {langLabel}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className={cn(
+                                "size-9 shrink-0 rounded-xl",
+                                "text-[hsl(var(--color-text-primary))]",
+                                "hover:bg-[hsl(var(--color-text-primary)/0.1)]",
+                                "focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-accent))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-code-block))]",
+                              )}
+                              aria-label="Copy code"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(codeText)
+                                  toast.success("Code copied")
+                                } catch {
+                                  toast.error("Could not copy to clipboard.")
+                                }
+                              }}
+                            >
+                              <Copy className="size-4" strokeWidth={2} />
+                            </Button>
+                          </div>
+                          <pre
+                            className={cn(
+                              "m-0 overflow-x-auto bg-transparent p-0 font-mono text-[0.8125rem] leading-relaxed tracking-normal",
+                              "text-[hsl(var(--color-text-primary))] [tab-size:2]",
+                              "selection:bg-[hsl(var(--color-accent)/0.22)] selection:text-[hsl(var(--color-text-primary))]",
+                              "md:text-[0.84375rem] md:leading-[1.65]",
+                              "[&_code.hljs]:!bg-transparent",
+                            )}
                           >
-                            <Copy className="size-3.5" />
-                          </Button>
+                            {children}
+                          </pre>
                         </div>
-                        <pre className="overflow-x-auto p-3">{children}</pre>
-                      </div>
                       )
                     },
                   }}
@@ -151,72 +234,81 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
                   {message.content}
                 </ReactMarkdown>
                 {isStreaming ? (
-                  <span className="inline-flex translate-y-[2px] items-center">
+                  <span className="mt-2 inline-flex translate-y-[2px] items-center">
                     <span className="h-4 w-[2px] animate-pulse bg-[hsl(var(--color-accent-soft))]" />
                   </span>
                 ) : null}
               </div>
 
               {!isStreaming ? (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <Button variant="ghost" size="sm" onClick={handleCopy}>
-                    <Copy className="mr-1 size-3.5" />
+                <div
+                  className={cn(
+                    "mt-2 flex flex-wrap items-center gap-0.5",
+                    "opacity-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                    "group-hover/msg:opacity-100 group-focus-within/msg:opacity-100",
+                  )}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2 text-xs text-[hsl(var(--color-text-secondary))] hover:text-[hsl(var(--color-text-primary))]"
+                    onClick={handleCopy}
+                  >
+                    <Copy className="size-3.5" />
                     {copied ? "Copied" : "Copy"}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={onRegenerate}>
-                    <RefreshCcw className="mr-1 size-3.5" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2 text-xs text-[hsl(var(--color-text-secondary))] hover:text-[hsl(var(--color-text-primary))]"
+                    disabled={!onRegenerate}
+                    onClick={() => onRegenerate?.()}
+                  >
+                    <RefreshCcw className="size-3.5" />
                     Regenerate
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <ThumbsUp className="size-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <ThumbsDown className="size-3.5" />
                   </Button>
                 </div>
               ) : null}
 
               {citations.length > 0 ? (
                 <div className="mt-4 space-y-2">
-                  <p className="text-xs uppercase tracking-[0.12em] text-[hsl(var(--color-text-secondary))]">Sources</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--color-text-secondary))]">
+                    Sources
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {citations.map((citation) => (
                       <button
                         key={`${citation.href}-${citation.title}`}
                         type="button"
                         onClick={() => setExpandedCitation(citation)}
-                        className="glass min-w-[220px] max-w-xs rounded-lg border border-[hsl(var(--color-border))] p-3 text-left"
+                        className={cn(
+                          "max-w-full rounded-lg border border-[hsl(var(--color-border))] bg-[hsl(var(--color-surface))] px-3 py-2 text-left",
+                          "text-xs text-[hsl(var(--color-text-primary))] transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                          "hover:border-[hsl(var(--color-accent)/0.4)] hover:text-[hsl(var(--color-accent-soft))]",
+                        )}
                       >
-                        <div className="mb-1 flex items-start justify-between gap-2">
-                          <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--color-text-secondary))]">
-                            <FileText className="size-3.5" />
-                            {citation.title}
-                          </span>
-                          <span
-                            className={cn(
-                              "rounded-full px-1.5 py-0.5 text-[10px]",
-                              citation.similarity >= 90
-                                ? "bg-[hsl(var(--color-accent)/0.2)] text-[hsl(var(--color-accent-soft))]"
-                                : "bg-[hsl(var(--color-text-primary)/0.08)] text-[hsl(var(--color-text-secondary))]"
-                            )}
-                          >
-                            {citation.similarity}%
-                          </span>
-                        </div>
-                        <p className="max-h-11 overflow-hidden text-xs text-[hsl(var(--color-text-secondary))]">
-                          {citation.excerpt}
-                        </p>
+                        <span className="inline-flex items-center gap-1.5">
+                          <FileText className="size-3 shrink-0 text-[hsl(var(--color-text-secondary))]" />
+                          <span className="line-clamp-2">{citation.title}</span>
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
               ) : null}
+
+              <p
+                className={cn(
+                  "mt-1 text-[11px] text-[hsl(var(--color-text-secondary))]",
+                  "opacity-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                  "group-hover/msg:opacity-100 group-focus-within/msg:opacity-100",
+                )}
+              >
+                {mounted ? formatChatDateTime(message.created_at) : ""}
+              </p>
             </div>
-          )}
-          <p className="invisible text-[11px] text-[hsl(var(--color-text-secondary))] group-hover:visible">
-            {mounted ? new Date(message.created_at).toLocaleString() : ""}
-          </p>
-        </div>
+          </div>
+        )}
       </div>
 
       <Drawer.Root open={Boolean(expandedCitation)} onOpenChange={(open) => !open && setExpandedCitation(null)}>

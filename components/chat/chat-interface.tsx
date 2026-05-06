@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, CircleAlert, Settings2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Message } from "@/components/chat/message";
@@ -40,6 +40,11 @@ type ChatInterfaceProps = {
 
 type ChatErrorKind = "rate-limit" | "monthly-limit" | "generic";
 
+type ChatApiErrorPayload = {
+  error?: string;
+  message?: string;
+};
+
 const suggestedPrompts = [
   "Summarize this week’s goals into a checklist",
   "Draft a launch announcement for a new SaaS feature",
@@ -72,6 +77,8 @@ export function ChatInterface({
   const [monthlyLimitDialogOpen, setMonthlyLimitDialogOpen] = useState(false);
   const inputFocusRef = useRef<(() => void) | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const rateLimitToastFromFetchRef = useRef(false);
 
   const transformedInitialMessages = useMemo(
     () =>
@@ -102,24 +109,53 @@ export function ChatInterface({
           const response = await fetch(input, init);
 
           if (!response.ok) {
-            const payload = await response
+            const payload = (await response
               .clone()
               .json()
-              .catch(() => ({}));
+              .catch(() => ({}))) as ChatApiErrorPayload & Record<string, unknown>;
             if (response.status === 429) {
+              const title =
+                typeof payload.error === "string"
+                  ? payload.error
+                  : "Rate limit exceeded";
+              const description =
+                typeof payload.message === "string"
+                  ? payload.message
+                  : typeof payload.error === "string"
+                    ? payload.error
+                    : "Too many requests. Try again later or upgrade your plan.";
+              rateLimitToastFromFetchRef.current = true;
+              toast.error(title, {
+                description,
+                action: {
+                  label: "Upgrade Plan",
+                  onClick: () => {
+                    window.location.href = "/billing";
+                  },
+                },
+              });
               setChatError({
                 kind: "rate-limit",
-                message: payload.error ?? "Rate limit exceeded.",
+                message: description,
               });
             } else if (response.status === 403) {
+              const description =
+                typeof payload.message === "string"
+                  ? payload.message
+                  : typeof payload.error === "string"
+                    ? payload.error
+                    : "Monthly message limit reached.";
               setChatError({
                 kind: "monthly-limit",
-                message: payload.error ?? "Monthly message limit reached.",
+                message: description,
               });
             } else {
               setChatError({
                 kind: "generic",
-                message: payload.error ?? "Something went wrong. Try again.",
+                message:
+                  typeof payload.error === "string"
+                    ? payload.error
+                    : "Something went wrong. Try again.",
               });
             }
             return response;
@@ -147,6 +183,29 @@ export function ChatInterface({
     messages: transformedInitialMessages,
     onError: (error) => {
       const message = error.message || "Unexpected chat error";
+      const fromJson = extractChatApiErrorPayload(message);
+      if (
+        fromJson &&
+        typeof fromJson.error === "string" &&
+        typeof fromJson.message === "string" &&
+        fromJson.error.toLowerCase().includes("rate")
+      ) {
+        if (!rateLimitToastFromFetchRef.current) {
+          toast.error(fromJson.error, {
+            description: fromJson.message,
+            action: {
+              label: "Upgrade Plan",
+              onClick: () => {
+                window.location.href = "/billing";
+              },
+            },
+          });
+        }
+        rateLimitToastFromFetchRef.current = false;
+        setChatError({ kind: "rate-limit", message: fromJson.message });
+        return;
+      }
+      rateLimitToastFromFetchRef.current = false;
       const lowered = message.toLowerCase();
       if (lowered.includes("rate limit")) {
         setChatError({ kind: "rate-limit", message });
@@ -181,9 +240,36 @@ export function ChatInterface({
     setChatError({ kind: "generic", message: error.message });
   }, [error]);
 
+  const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+      return;
+    }
+    endRef.current?.scrollIntoView({ behavior });
+  };
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, status]);
+    scrollToBottom("smooth");
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (status !== "streaming") return;
+
+    let frameId: number;
+    const tick = () => {
+      scrollToBottom("auto");
+      frameId = window.requestAnimationFrame(tick);
+    };
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [status, messages]);
 
   useEffect(() => {
     if (chatError?.kind === "monthly-limit") {
@@ -208,6 +294,7 @@ export function ChatInterface({
   }, [onNewChat]);
 
   const submitMessage = () => {
+    rateLimitToastFromFetchRef.current = false;
     setChatError(null);
     const cleanInput = input.trim();
     if (!cleanInput) return;
@@ -237,6 +324,7 @@ export function ChatInterface({
   const retryLastMessage = () => {
     if (!lastSentMessage || status === "submitted" || status === "streaming")
       return;
+    rateLimitToastFromFetchRef.current = false;
     setChatError(null);
     void sendMessage(
       { text: lastSentMessage },
@@ -282,7 +370,7 @@ export function ChatInterface({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full min-h-0 flex-col bg-[hsl(var(--color-bg))]">
       <div className="border-b border-[hsl(var(--color-border))] px-4 py-3">
         <div className="mx-auto flex w-full items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -326,7 +414,7 @@ export function ChatInterface({
               className="glass border border-[hsl(var(--color-border))]"
               align="end"
             >
-              <DropdownMenuItem>Model: GPT-4o mini</DropdownMenuItem>
+              <DropdownMenuItem>Model: Gemma 4</DropdownMenuItem>
               <DropdownMenuItem onClick={handleRegenerate}>
                 Regenerate last response
               </DropdownMenuItem>
@@ -337,8 +425,11 @@ export function ChatInterface({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full px-4 py-8">
+      <div
+        ref={scrollContainerRef}
+        className="relative z-0 min-h-0 flex-1 overflow-y-auto"
+      >
+        <div className="mx-auto w-full max-w-5xl px-3 pb-52 pt-6 md:px-6">
           {messages.length === 0 ? (
             <div className="flex min-h-[52vh] flex-col items-center justify-center space-y-6 text-center">
               <div>
@@ -371,7 +462,7 @@ export function ChatInterface({
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="flex flex-col">
               {messages.length > visibleMessagesCount ? (
                 <div className="flex justify-center">
                   <button
@@ -418,9 +509,17 @@ export function ChatInterface({
           )}
 
           {status === "submitted" ? (
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] px-3 py-2 text-xs text-[hsl(var(--color-text-secondary))]">
-              <TypingDots />
-              Thinking...
+            <div className="flex w-full gap-3 py-4 md:gap-4 md:py-5">
+              <div
+                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--color-text-primary)/0.08)] text-[hsl(var(--color-accent-soft))]"
+                aria-hidden
+              >
+                <Bot className="size-[1.125rem]" strokeWidth={1.75} />
+              </div>
+              <div className="flex items-center gap-2 pt-1.5 text-sm text-[hsl(var(--color-text-secondary))]">
+                <TypingDots />
+                <span>Thinking…</span>
+              </div>
             </div>
           ) : null}
 
@@ -446,7 +545,7 @@ export function ChatInterface({
                         messages.
                       </p>
                       <MagneticButton
-                        onClick={() => (window.location.href = "/pricing")}
+                        onClick={() => (window.location.href = "/billing")}
                       >
                         Upgrade plan
                       </MagneticButton>
@@ -478,28 +577,35 @@ export function ChatInterface({
         </div>
       </div>
 
-      <div className="relative">
+      <div className="pointer-events-none absolute bottom-0 left-0 right-[var(--scrollbar-size)] z-30">
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-52 bg-gradient-to-t from-[hsl(var(--color-bg))] via-[hsl(var(--color-bg)/0.96)] via-65% to-transparent"
+          aria-hidden
+        />
         {chatError?.kind === "monthly-limit" ? (
           <div className="absolute inset-0 z-10 rounded-2xl bg-black/45 backdrop-blur-[1px]" />
         ) : null}
-        <ChatInput
-          value={input}
-          onValueChange={setInput}
-          onSubmit={submitMessage}
-          isStreaming={status === "streaming" || status === "submitted"}
-          isDisabled={chatError?.kind === "monthly-limit"}
-          onStop={() => undefined}
-          onFocusRequest={(focus) => {
-            inputFocusRef.current = focus;
-          }}
-        />
+        <div className="relative z-20">
+          <ChatInput
+            value={input}
+            onValueChange={setInput}
+            onSubmit={submitMessage}
+            isStreaming={status === "streaming" || status === "submitted"}
+            isDisabled={chatError?.kind === "monthly-limit"}
+            onStop={() => undefined}
+            onFocusRequest={(focus) => {
+              inputFocusRef.current = focus;
+            }}
+            className="pointer-events-auto pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6"
+          />
+        </div>
       </div>
 
       <Dialog
         open={monthlyLimitDialogOpen}
         onOpenChange={setMonthlyLimitDialogOpen}
       >
-        <DialogContent className="glass border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-xl text-[hsl(var(--color-text-primary))]">
               Monthly limit reached
@@ -510,7 +616,7 @@ export function ChatInterface({
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2 flex items-center gap-2">
-            <MagneticButton onClick={() => (window.location.href = "/pricing")}>
+            <MagneticButton onClick={() => (window.location.href = "/billing")}>
               Upgrade plan
             </MagneticButton>
             <Button
@@ -524,6 +630,27 @@ export function ChatInterface({
       </Dialog>
     </div>
   );
+}
+
+function tryParseChatApiJson(text: string): ChatApiErrorPayload | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{")) return null;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed as ChatApiErrorPayload;
+  } catch {
+    return null;
+  }
+}
+
+function extractChatApiErrorPayload(text: string): ChatApiErrorPayload | null {
+  const direct = tryParseChatApiJson(text);
+  if (direct) return direct;
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  return tryParseChatApiJson(text.slice(start, end + 1));
 }
 
 function extractTextFromMessage(message: UIMessage) {

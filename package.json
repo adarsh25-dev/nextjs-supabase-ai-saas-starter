@@ -11,7 +11,7 @@
     "supabase:types": "supabase gen types typescript --project-id YOUR_PROJECT > types/database.ts"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.66",
+    "@ai-sdk/openai": "^3.0.62",
     "@ai-sdk/react": "^3.0.172",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.4",
