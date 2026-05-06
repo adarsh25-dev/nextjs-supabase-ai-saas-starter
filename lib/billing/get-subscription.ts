@@ -15,7 +15,7 @@ export type SubscriptionSnapshot = {
   renewalDate: string | null
 }
 
-export async function useSubscription(): Promise<SubscriptionSnapshot> {
+export async function getSubscription(): Promise<SubscriptionSnapshot> {
   const supabase = await createClient()
   const {
     data: { user },

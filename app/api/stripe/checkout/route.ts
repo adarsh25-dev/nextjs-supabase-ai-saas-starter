@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin
-    const successUrl = `${siteUrl}/dashboard/billing?success=1`
+    const successUrl = `${siteUrl}/billing?success=1`
     const cancelUrl = `${siteUrl}/pricing?canceled=1`
 
     const session = await stripe.checkout.sessions.create({

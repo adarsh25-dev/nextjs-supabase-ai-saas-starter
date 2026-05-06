@@ -8,7 +8,7 @@ import { Drawer } from "vaul"
 import { ChatInterface } from "@/components/chat/chat-interface"
 import { SessionsSidebar } from "@/components/chat/SessionsSidebar"
 import type { ChatMessage, ChatSession } from "@/components/chat/types"
-import { renameSession } from "@/app/(dashboard)/dashboard/chat/actions"
+import { renameSession } from "@/app/(dashboard)/chat/actions"
 
 type ChatLayoutProps = {
   initialSessions: ChatSession[]
@@ -29,7 +29,7 @@ export function ChatLayout({
 
   const loadSession = async (sessionId: string) => {
     setActiveSessionId(sessionId)
-    router.push(`/dashboard/chat?session=${sessionId}`)
+    router.push(`/chat?session=${sessionId}`)
 
     const response = await fetch(`/api/chat/${sessionId}`)
     if (!response.ok) {
@@ -44,7 +44,7 @@ export function ChatLayout({
   const newChat = () => {
     setActiveSessionId(null)
     setMessages([])
-    router.push("/dashboard/chat")
+    router.push("/chat")
   }
 
   const handleSessionCreated = (sessionId: string, title: string) => {
@@ -55,7 +55,7 @@ export function ChatLayout({
     }
     setSessions((prev) => [createdSession, ...prev.filter((session) => session.id !== sessionId)])
     setActiveSessionId(sessionId)
-    router.push(`/dashboard/chat?session=${sessionId}`)
+    router.push(`/chat?session=${sessionId}`)
   }
 
   const handleSessionDeleted = (sessionId: string) => {

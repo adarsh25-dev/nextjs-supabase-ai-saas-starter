@@ -5,26 +5,50 @@
 [![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/new)
 [![GitHub stars](https://img.shields.io/github/stars/adarshparmar/nextjs-supabase-ai-saas-starter?style=social)](https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter)
 
-Production-ready starter to launch AI SaaS products fast: auth, billing, streaming chat, rate limits, emails, analytics, and monitoring.
+Production-ready SaaS starter built for fast shipping and real-world reliability: Supabase auth, Stripe subscriptions, Gemini-powered streaming chat, usage limits, transactional email, analytics, and monitoring.
 
 ## Screenshots
 
 - Landing: `public/marketing-dashboard-placeholder.svg`
 - Chat: `public/marketing-chat-placeholder.svg`
 
-## Features
+## Tech Stack
 
-- 🚀 Next.js 14 App Router + TypeScript strict mode
-- 🔐 Supabase auth + RLS + profile management + avatar storage
-- 💳 Stripe subscriptions (Starter, Pro, Business) + webhook sync
-- 🤖 Gemini streaming chat with session history persistence
-- 🧠 Tiered limits via Upstash rate limiting + monthly usage tracking
-- ✉️ Transactional email templates with Resend + React Email
-- 📈 PostHog analytics hooks for signup/login/chat/subscription
-- 🛡️ Sentry instrumentation + route/action error capture
-- 🔒 Security headers + CSP + robots/sitemap + OG image generation
+- **Framework**: Next.js 14 (App Router), React 18, TypeScript (strict)
+- **UI**: Tailwind CSS, Framer Motion, Radix primitives, custom design system
+- **Auth & DB**: Supabase Auth + Postgres + RLS + Storage
+- **Billing**: Stripe Checkout + Billing Portal + Webhooks
+- **AI**: Gemini (`@ai-sdk/google`) + Vercel AI SDK streaming
+- **Rate limiting**: Upstash Redis + `@upstash/ratelimit`
+- **Email**: Resend + React Email templates
+- **Observability**: Sentry
+- **Product analytics**: PostHog
 
-## Quick Start (5 commands)
+## Route Map
+
+- `/` — Marketing landing page
+- `/pricing` — Public pricing and plan comparison
+- `/login` — Password login
+- `/signup` — Signup flow
+- `/forgot-password` — Password reset request
+- `/reset-password` — Password reset completion
+- `/dashboard` — Dashboard overview
+- `/chat` — AI chat workspace
+- `/settings` — Account and profile settings
+- `/billing` — Subscription and usage management
+
+## Core Features
+
+- Supabase authentication with profile management and avatar uploads
+- Stripe subscription lifecycle (checkout, billing portal, webhook sync)
+- Gemini streaming chat with persistent sessions and message history
+- Per-tier usage limits + monthly tracking + rate limiting
+- Branded loading/error/empty states
+- PostHog analytics hooks for product events
+- Sentry instrumentation for server/client error visibility
+- Security headers, robots, sitemap, and OG image support
+
+## Quick Start
 
 ```bash
 git clone https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter.git
@@ -36,72 +60,79 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Required Environment Variables
+## Environment Variables
 
-See `.env.example` for the complete list. Key groups:
+Use `.env.example` as the source of truth.
 
 - **Core**: `NEXT_PUBLIC_SITE_URL`
 - **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- **Stripe**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, price IDs
+- **Stripe**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Stripe price IDs
 - **AI**: `GEMINI_API_KEY`, optional `GEMINI_MODEL_DEFAULT`, `GEMINI_MODEL_PRO`
 - **Email**: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
-- **Monitoring**: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`
+- **Monitoring**: `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`
 - **Analytics**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
 - **Rate limits**: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- **Optional dev seed**: `DEV_TEST_EMAIL`, `DEV_TEST_PASSWORD`, `DEV_TEST_NAME`
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  User --> NextApp[Next.js App Router]
-  NextApp --> Supabase[(Supabase DB + Auth + Storage)]
-  NextApp --> Stripe[Stripe Billing APIs]
-  NextApp --> Gemini[Gemini Chat Models]
-  NextApp --> Upstash[Upstash Redis Rate Limit]
-  NextApp --> Resend[Resend Email API]
-  NextApp --> PostHog[PostHog Analytics]
-  NextApp --> Sentry[Sentry Monitoring]
-  Stripe --> NextApp
+  user[UserBrowser] --> nextApp[NextApp]
+  nextApp --> supabase[(Supabase)]
+  nextApp --> stripe[StripeAPI]
+  nextApp --> gemini[GeminiAPI]
+  nextApp --> upstash[UpstashRedis]
+  nextApp --> resend[ResendAPI]
+  nextApp --> posthog[PostHog]
+  nextApp --> sentry[Sentry]
+  stripe --> webhook[StripeWebhookRoute]
+  webhook --> supabase
 ```
 
-## Why This Stack?
+## Project Structure
 
-- **Next.js 14**: Mature routing and rendering model for SaaS apps.
-- **Supabase**: Fast auth + Postgres + RLS + storage with one platform.
-- **Stripe**: Reliable subscriptions and customer portal out of the box.
-- **Gemini + Vercel AI SDK**: First-class streaming UX for chat features.
-- **Sentry + PostHog**: Both reliability and product insight loops.
+```text
+app/                  # App Router routes, API routes, layouts
+components/           # Feature and UI components
+lib/                  # Domain libraries (billing, stripe, supabase, email, etc.)
+utils/                # Shared utility helpers (e.g. class merging)
+services/             # Reserved for service-layer abstractions
+types/                # Global shared types
+supabase/migrations/  # SQL migrations
+scripts/              # Developer scripts
+```
 
-## Production Notes
+## Setup Checklist (Production)
 
-- Run SQL migrations in `supabase/migrations/` (includes Stripe webhook idempotency table).
-- Configure Stripe webhook endpoint: `/api/stripe/webhook`.
-- Configure Sentry DSN values for both server and client.
-- Configure PostHog key and host for event tracking.
+1. Run Supabase migrations in `supabase/migrations/`.
+2. Configure Stripe products and set all `STRIPE_PRICE_*` env vars.
+3. Set Stripe webhook endpoint to `/api/stripe/webhook`.
+4. Configure Sentry DSN(s) and project metadata.
+5. Configure PostHog key + host.
+6. Set `GEMINI_API_KEY` and optional model overrides.
+7. Verify auth redirect URLs in Supabase and Stripe return URLs.
 
-## Roadmap
+## Deployment
 
-- [ ] Team workspaces and org billing
-- [ ] API key management UI
-- [ ] Background job queue for async tasks
-- [ ] Admin audit dashboard
-- [ ] More analytics events and feature-flag experiments
+Recommended target: **Vercel**.
+
+- Add all env vars from `.env.example` to project settings.
+- Ensure `NEXT_PUBLIC_SITE_URL` matches your production domain.
+- Trigger a production deploy and validate:
+  - login/signup
+  - webhook delivery
+  - `/chat` streaming
+  - billing portal and checkout redirects
 
 ## Contributing
 
-Contributions are welcome. Open an issue with the problem statement first, then submit a PR with:
+Contributions are welcome. Open an issue first, then submit a PR with:
 
 - clear scope
-- tests or verification notes
-- migration notes if database changes are included
+- verification notes
+- migration notes (if schema/data changes are involved)
 
 ## License
 
 MIT. See `LICENSE`.
-
-## Author
-
-Built by Adarsh Parmar.
-
-- LinkedIn: [linkedin.com/in/adarshparmar](https://linkedin.com/in/adarshparmar)
-- Portfolio: [adarshparmar.dev](https://adarshparmar.dev)

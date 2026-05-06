@@ -51,7 +51,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
       return { ok: false, message: "Unable to update profile right now." }
     }
 
-    revalidatePath("/dashboard/settings")
+    revalidatePath("/settings")
     return { ok: true, message: "Profile updated." }
   } catch (error) {
     Sentry.captureException(error)

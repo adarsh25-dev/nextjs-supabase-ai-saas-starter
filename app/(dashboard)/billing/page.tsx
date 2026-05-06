@@ -6,8 +6,7 @@ import { ManageSubscriptionButton } from "@/components/billing/manage-subscripti
 import { PricingGrid } from "@/components/billing/pricing-grid"
 import { UsageMeter } from "@/components/billing/usage-meter"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { useSubscription as getSubscription } from "@/lib/hooks/use-subscription"
+import { getSubscription } from "@/lib/billing/get-subscription"
 import { PLANS } from "@/lib/stripe/config"
 
 export const metadata: Metadata = {

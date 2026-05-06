@@ -40,9 +40,9 @@ type CommandPaletteProps = {
 
 const fallbackNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/billing", label: "Billing", icon: CreditCard },
 ]
 
 export function CommandPalette({ recentSessions = [], navItems = fallbackNav, accountActions = [] }: CommandPaletteProps) {
@@ -79,14 +79,14 @@ export function CommandPalette({ recentSessions = [], navItems = fallbackNav, ac
         run: () => router.push(item.href),
         icon: item.icon,
       })),
-      { id: "new-chat", label: "New chat", keywords: "ai message", run: () => router.push("/dashboard/chat"), icon: MessageSquare, shortcut: "+" },
+      { id: "new-chat", label: "New chat", keywords: "ai message", run: () => router.push("/chat"), icon: MessageSquare, shortcut: "+" },
     ],
     [navItems, router]
   )
 
   const defaultAccountActions: AccountAction[] = [
-    { id: "account-settings", label: "Account settings", href: "/dashboard/settings", icon: UserRound },
-    { id: "billing", label: "Billing", href: "/dashboard/billing", icon: CreditCard },
+    { id: "account-settings", label: "Account settings", href: "/settings", icon: UserRound },
+    { id: "billing", label: "Billing", href: "/billing", icon: CreditCard },
     {
       id: "signout",
       label: "Sign out",
@@ -153,7 +153,7 @@ export function CommandPalette({ recentSessions = [], navItems = fallbackNav, ac
                         label: session.title || "Untitled chat",
                         keywords: "chat session recent",
                         icon: MessageSquare,
-                        run: () => router.push(`/dashboard/chat?session=${session.id}`),
+                        run: () => router.push(`/chat?session=${session.id}`),
                       }}
                       close={() => setOpen(false)}
                     />

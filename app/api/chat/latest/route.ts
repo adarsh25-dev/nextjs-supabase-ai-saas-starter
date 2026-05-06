@@ -14,13 +14,17 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: latestSession } = await supabase
+    const { data: latestSession, error: latestSessionError } = await supabase
       .from("chat_sessions")
       .select("id, title, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    if (latestSessionError) {
+      throw latestSessionError
+    }
 
     return NextResponse.json({ session: latestSession ?? null })
   } catch (error) {

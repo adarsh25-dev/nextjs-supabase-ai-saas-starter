@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { DashboardShell } from "@/components/dashboard/DashboardShell"
-import { useSubscription as getSubscription } from "@/lib/hooks/use-subscription"
+import { getSubscription } from "@/lib/billing/get-subscription"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function DashboardGroupLayout({

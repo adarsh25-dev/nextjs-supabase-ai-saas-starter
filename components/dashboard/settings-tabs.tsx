@@ -7,7 +7,7 @@ import { Check, KeyRound, Pencil, ShieldAlert } from "lucide-react"
 import { toast } from "sonner"
 import { Drawer } from "vaul"
 
-import { changePassword, deleteAccount, updateProfile } from "@/app/(dashboard)/dashboard/settings/actions"
+import { changePassword, deleteAccount, updateProfile } from "@/app/(dashboard)/settings/actions"
 import { AvatarUpload } from "@/components/dashboard/avatar-upload"
 import { Alert } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"

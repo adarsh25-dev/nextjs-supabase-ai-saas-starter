@@ -20,7 +20,7 @@ export default async function ChatPage({
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login?next=/dashboard/chat")
+    redirect("/login?next=/chat")
   }
 
   const { data: sessions } = await supabase

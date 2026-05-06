@@ -24,6 +24,12 @@ import {
 } from "lucide-react"
 
 import { StatCard } from "@/components/dashboard/StatCard"
+import {
+  buildActivityData,
+  buildSparkline,
+  usageBarColor,
+  usageBarGradient,
+} from "@/lib/dashboard/metrics"
 import { cn } from "@/lib/utils"
 
 type DashboardOverviewClientProps = {
@@ -34,12 +40,6 @@ type DashboardOverviewClientProps = {
   tokensThisMonth: number
   monthlyMessageLimit: number
   recentSessions: Array<{ id: string; title: string; created_at: string }>
-}
-
-type ActivityPoint = {
-  day: string
-  fullDate: string
-  value: number
 }
 
 function getGreetingPrefix() {
@@ -59,51 +59,6 @@ function relativeTimeLabel(isoDate: string) {
   if (Math.abs(hours) < 24) return rtf.format(hours, "hour")
   const days = Math.round(hours / 24)
   return rtf.format(days, "day")
-}
-
-function buildActivityData(totalMessages: number, recentSessions: Array<{ created_at: string }>) {
-  const sessionsByDay = new Map<string, number>()
-  recentSessions.forEach((session) => {
-    const key = new Date(session.created_at).toISOString().slice(0, 10)
-    sessionsByDay.set(key, (sessionsByDay.get(key) ?? 0) + 1)
-  })
-
-  const points: ActivityPoint[] = []
-  for (let index = 89; index >= 0; index--) {
-    const date = new Date()
-    date.setDate(date.getDate() - index)
-    const key = date.toISOString().slice(0, 10)
-    const sessionWeight = sessionsByDay.get(key) ?? 0
-    const baseline = Math.max(0, Math.round(totalMessages / 60))
-    const wave = Math.round(Math.sin((89 - index) / 5) * (baseline * 0.25 + 1))
-    points.push({
-      day: `${date.getMonth() + 1}/${date.getDate()}`,
-      fullDate: key,
-      value: Math.max(0, baseline + wave + sessionWeight * 4),
-    })
-  }
-  return points
-}
-
-function buildSparkline(source: ActivityPoint[]) {
-  const slim = source.slice(-8)
-  return slim.map((item, index) => ({ x: `${index + 1}`, y: item.value }))
-}
-
-function usageBarColor(percent: number) {
-  if (percent >= 90) return "hsl(4 41% 53%)"
-  if (percent >= 70) return "hsl(32 47% 61%)"
-  return "hsl(16 60% 60%)"
-}
-
-function usageBarGradient(percent: number) {
-  if (percent >= 90) {
-    return "linear-gradient(90deg, hsl(10 52% 64%) 0%, hsl(4 41% 53%) 100%)"
-  }
-  if (percent >= 70) {
-    return "linear-gradient(90deg, hsl(38 55% 68%) 0%, hsl(32 47% 61%) 100%)"
-  }
-  return "linear-gradient(90deg, hsl(23 68% 66%) 0%, hsl(16 60% 60%) 100%)"
 }
 
 export function DashboardOverviewClient({
@@ -211,7 +166,7 @@ export function DashboardOverviewClient({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.1 }}
-          className="gradient-border relative overflow-hidden rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-6 lg:col-span-8"
+          className="gradient-border relative min-w-0 overflow-hidden rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-6 lg:col-span-8"
         >
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           <div className="mb-5 flex items-center justify-between">
@@ -234,8 +189,8 @@ export function DashboardOverviewClient({
               ))}
             </div>
           </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-72 min-h-[18rem] min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
               <AreaChart data={rangedData}>
                 <defs>
                   <linearGradient id="activity-fill" x1="0" y1="0" x2="0" y2="1">
@@ -307,9 +262,9 @@ export function DashboardOverviewClient({
             <h3 className="font-display text-lg text-[hsl(var(--color-text-primary))]">Quick actions</h3>
             <div className="mt-4 space-y-2">
               {[
-                { href: "/dashboard/chat", label: "Start a new conversation", icon: MessageSquare },
-                { href: "/dashboard/settings", label: "Update account settings", icon: Settings },
-                { href: "/dashboard/billing", label: "Manage billing and plan", icon: CreditCard },
+                { href: "/chat", label: "Start a new conversation", icon: MessageSquare },
+                { href: "/settings", label: "Update account settings", icon: Settings },
+                { href: "/billing", label: "Manage billing and plan", icon: CreditCard },
                 { href: "/pricing", label: "Compare upgrade options", icon: Rocket },
               ].map((action) => (
                 <Link
@@ -373,7 +328,7 @@ export function DashboardOverviewClient({
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-display text-xl text-[hsl(var(--color-text-primary))]">Recent conversations</h3>
-          <Link href="/dashboard/chat" className="text-sm text-[hsl(var(--color-accent-soft))]">
+          <Link href="/chat" className="text-sm text-[hsl(var(--color-accent-soft))]">
             View all →
           </Link>
         </div>
@@ -391,7 +346,7 @@ export function DashboardOverviewClient({
               Kick off a conversation and your recent history will appear here.
             </p>
             <Link
-              href="/dashboard/chat"
+              href="/chat"
               className="mt-4 rounded-xl border border-[hsl(var(--color-border))] bg-black/30 px-4 py-2 text-sm text-[hsl(var(--color-text-primary))]"
             >
               Start your first chat
@@ -408,7 +363,7 @@ export function DashboardOverviewClient({
                 className="min-w-[250px] max-w-[250px]"
               >
                 <Link
-                  href={`/dashboard/chat?session=${session.id}`}
+                  href={`/chat?session=${session.id}`}
                   className="gradient-border relative block rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110"
                 >
                   <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />

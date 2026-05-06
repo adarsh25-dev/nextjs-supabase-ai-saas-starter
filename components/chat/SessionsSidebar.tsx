@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { MoreHorizontal, Search } from "lucide-react"
 import { toast } from "sonner"
 
-import { renameSession } from "@/app/(dashboard)/dashboard/chat/actions"
+import { renameSession } from "@/app/(dashboard)/chat/actions"
 import type { ChatSession } from "@/components/chat/types"
 import { Button } from "@/components/ui/button"
 import {

@@ -147,24 +147,6 @@ export function Sidebar({
             ))}
           </nav>
 
-          <div className="my-4 h-px bg-[hsl(var(--color-text-primary)/0.08)]" />
-          {!collapsed ? (
-            <>
-              <p className="px-2 text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--color-text-secondary)/0.75)]">Recent</p>
-              <div className="mt-2 space-y-1">
-                {recentSessions.slice(0, 5).map((session) => (
-                  <Link
-                    key={session.id}
-                    href={`/dashboard/chat?session=${session.id}`}
-                    className="block rounded-lg px-3 py-2 text-xs text-[hsl(var(--color-text-secondary))] transition-colors hover:bg-[hsl(var(--color-text-primary)/0.05)] hover:text-[hsl(var(--color-text-primary))]"
-                    title={session.title}
-                  >
-                    <span className="block truncate">{session.title}</span>
-                  </Link>
-                ))}
-              </div>
-            </>
-          ) : null}
         </div>
 
         <div className="mt-3 space-y-2">
@@ -188,10 +170,10 @@ export function Sidebar({
                 <DropdownMenuLabel>My account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">Settings</Link>
+                  <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/billing">Billing</Link>
+                  <Link href="/billing">Billing</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={onSignOut} disabled={isSigningOut}>

@@ -89,8 +89,8 @@ export function StatCard({
             "Current subscription tier"
           )}
         </p>
-        <div className="h-10 w-24">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-10 w-24 min-w-0">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
             <AreaChart data={sparkline}>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">

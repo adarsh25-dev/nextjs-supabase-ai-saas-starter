@@ -1,6 +1,7 @@
 "use server"
 
 import * as Sentry from "@sentry/nextjs"
+import { z } from "zod"
 
 import { sendWelcomeEmail } from "@/lib/email/send"
 import { createClient } from "@/lib/supabase/server"
@@ -26,6 +27,22 @@ type MagicLinkInput = {
   redirectPath?: string
 }
 
+const loginInputSchema = z.object({
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+})
+
+const signupInputSchema = z.object({
+  fullName: z.string().trim().min(2, "Please enter your full name."),
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+})
+
+const magicLinkInputSchema = z.object({
+  email: z.string().email("Please enter a valid email address."),
+  redirectPath: z.string().optional(),
+})
+
 function toFriendlyAuthError(errorMessage?: string) {
   const message = (errorMessage ?? "").toLowerCase()
 
@@ -43,10 +60,15 @@ function toFriendlyAuthError(errorMessage?: string) {
 
 export async function loginWithPassword(input: LoginInput): Promise<ActionResult> {
   try {
+    const parsedInput = loginInputSchema.safeParse(input)
+    if (!parsedInput.success) {
+      return { ok: false, message: parsedInput.error.issues[0]?.message ?? "Invalid login input." }
+    }
+
     const supabase = await createClient()
     const { error } = await supabase.auth.signInWithPassword({
-      email: input.email,
-      password: input.password,
+      email: parsedInput.data.email,
+      password: parsedInput.data.password,
     })
 
     if (error) {
@@ -62,15 +84,20 @@ export async function loginWithPassword(input: LoginInput): Promise<ActionResult
 
 export async function signupWithPassword(input: SignupInput): Promise<ActionResult> {
   try {
+    const parsedInput = signupInputSchema.safeParse(input)
+    if (!parsedInput.success) {
+      return { ok: false, message: parsedInput.error.issues[0]?.message ?? "Invalid signup input." }
+    }
+
     const supabase = await createClient()
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 
     const { data, error } = await supabase.auth.signUp({
-      email: input.email,
-      password: input.password,
+      email: parsedInput.data.email,
+      password: parsedInput.data.password,
       options: {
         data: {
-          full_name: input.fullName,
+          full_name: parsedInput.data.fullName,
         },
         emailRedirectTo: `${siteUrl}/auth/callback?next=%2Fdashboard`,
       },
@@ -80,7 +107,7 @@ export async function signupWithPassword(input: SignupInput): Promise<ActionResu
       return { ok: false, message: toFriendlyAuthError(error.message) }
     }
 
-    await sendWelcomeEmail(input.email, input.fullName)
+    await sendWelcomeEmail(parsedInput.data.email, parsedInput.data.fullName)
 
     if (!data.session) {
       return {
@@ -98,12 +125,17 @@ export async function signupWithPassword(input: SignupInput): Promise<ActionResu
 
 export async function sendMagicLink(input: MagicLinkInput): Promise<ActionResult> {
   try {
+    const parsedInput = magicLinkInputSchema.safeParse(input)
+    if (!parsedInput.success) {
+      return { ok: false, message: parsedInput.error.issues[0]?.message ?? "Invalid magic link input." }
+    }
+
     const supabase = await createClient()
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-    const redirectPath = input.redirectPath ?? "/dashboard"
+    const redirectPath = parsedInput.data.redirectPath ?? "/dashboard"
 
     const { error } = await supabase.auth.signInWithOtp({
-      email: input.email,
+      email: parsedInput.data.email,
       options: {
         emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
       },

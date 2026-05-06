@@ -1,4 +1,4 @@
-import { codeToHtml } from "shiki"
+import { codeToHtml } from "shiki";
 
 const chatSnippet = `import { streamText } from "ai"
 import { google } from "@ai-sdk/google"
@@ -12,14 +12,16 @@ export async function POST(req: Request) {
   })
 
   return result.toUIMessageStreamResponse()
-}`
+}`;
 
 export async function getChatCodeLines() {
   const html = await codeToHtml(chatSnippet, {
     lang: "ts",
     theme: "github-dark",
-  })
+  });
 
-  const lines = [...html.matchAll(/<span class="line">(.*?)<\/span>/g)].map((match) => match[1])
-  return lines.length ? lines : chatSnippet.split("\n")
+  const lines = [...html.matchAll(/<span class="line">(.*?)<\/span>/g)].map(
+    (match) => match[1],
+  );
+  return lines.length ? lines : chatSnippet.split("\n");
 }

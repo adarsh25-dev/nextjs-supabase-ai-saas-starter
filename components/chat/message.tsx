@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Bot,
   Copy,
@@ -74,8 +74,13 @@ function extractCodeText(node: unknown): string {
 export function Message({ message, isStreaming = false, onRegenerate }: MessageProps) {
   const [copied, setCopied] = useState(false)
   const [expandedCitation, setExpandedCitation] = useState<Citation | null>(null)
+  const [mounted, setMounted] = useState(false)
   const isUser = message.role === "user"
   const citations = useMemo(() => extractCitations(message.content), [message.content])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content)
@@ -209,7 +214,7 @@ export function Message({ message, isStreaming = false, onRegenerate }: MessageP
             </div>
           )}
           <p className="invisible text-[11px] text-[hsl(var(--color-text-secondary))] group-hover:visible">
-            {new Date(message.created_at).toLocaleString()}
+            {mounted ? new Date(message.created_at).toLocaleString() : ""}
           </p>
         </div>
       </div>

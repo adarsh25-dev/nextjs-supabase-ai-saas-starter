@@ -64,7 +64,7 @@ export function Topbar({ title, user, onOpenMobileNav }: TopbarProps) {
         <MagneticButton
           variant="primary"
           className="h-9 px-3 text-xs md:text-sm"
-          onClick={() => router.push("/dashboard/chat")}
+          onClick={() => router.push("/chat")}
         >
           <Plus className="mr-1 size-4" /> New chat
         </MagneticButton>

@@ -110,12 +110,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const { count: monthlyMessagesCount } = await supabase
+    const { count: monthlyMessagesCount, error: usageCountError } = await supabase
       .from("usage_records")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("event_type", "chat_message")
       .eq("month_year", monthYear);
+
+    if (usageCountError) {
+      throw usageCountError;
+    }
 
     const limit = PLAN_LIMITS[tier];
     if ((monthlyMessagesCount ?? 0) >= limit) {
@@ -131,12 +135,16 @@ export async function POST(request: Request) {
 
     let sessionId = parsed.data.sessionId;
     if (sessionId) {
-      const { data: existingSession } = await supabase
+      const { data: existingSession, error: existingSessionError } = await supabase
         .from("chat_sessions")
         .select("id")
         .eq("id", sessionId)
         .eq("user_id", user.id)
         .maybeSingle();
+
+      if (existingSessionError) {
+        throw existingSessionError;
+      }
 
       if (!existingSession) {
         return NextResponse.json(
@@ -178,12 +186,16 @@ export async function POST(request: Request) {
       );
     }
 
-    await supabase.from("chat_messages").insert({
+    const { error: userMessageInsertError } = await supabase.from("chat_messages").insert({
       session_id: sessionId,
       role: "user",
       content: latestUserMessage.content,
       tokens_used: 0,
     });
+
+    if (userMessageInsertError) {
+      throw userMessageInsertError;
+    }
 
     const model =
       tier === "pro" || tier === "business"
@@ -205,20 +217,28 @@ export async function POST(request: Request) {
         const totalTokens = usage.totalTokens ?? 0;
 
         if (text.trim().length > 0) {
-          await supabase.from("chat_messages").insert({
+          const { error: assistantMessageInsertError } = await supabase.from("chat_messages").insert({
             session_id: sessionId,
             role: "assistant",
             content: text,
             tokens_used: totalTokens,
           });
+
+          if (assistantMessageInsertError) {
+            Sentry.captureException(assistantMessageInsertError);
+          }
         }
 
-        await supabase.from("usage_records").insert({
+        const { error: usageInsertError } = await supabase.from("usage_records").insert({
           user_id: user.id,
           event_type: "chat_message",
           tokens_used: totalTokens,
           month_year: monthYear,
         });
+
+        if (usageInsertError) {
+          Sentry.captureException(usageInsertError);
+        }
       },
     });
 

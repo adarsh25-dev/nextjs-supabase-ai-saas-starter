@@ -26,6 +26,12 @@ const nextConfig = {
       },
     ]
   },
+  webpack: (config) => {
+    // Avoid noisy PackFileCacheStrategy "Serializing big strings" warnings during builds.
+    // This only impacts build cache speed, not runtime behavior.
+    config.cache = false
+    return config
+  },
 }
 
 export default withSentryConfig(nextConfig, {

@@ -31,18 +31,18 @@ export type DashboardNavItem = {
   icon: React.ComponentType<{ className?: string }>
 }
 
-export const navItems: DashboardNavItem[] = [
+const navItems: DashboardNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/billing", label: "Billing", icon: CreditCard },
 ]
 
 function titleFromPath(pathname: string) {
   if (pathname === "/dashboard") return "Dashboard"
-  if (pathname.startsWith("/dashboard/chat")) return "Chat"
-  if (pathname.startsWith("/dashboard/settings")) return "Settings"
-  if (pathname.startsWith("/dashboard/billing")) return "Billing"
+  if (pathname.startsWith("/chat")) return "Chat"
+  if (pathname.startsWith("/settings")) return "Settings"
+  if (pathname.startsWith("/billing")) return "Billing"
   return "Dashboard"
 }
 
@@ -53,6 +53,7 @@ export function DashboardShell({ children, user, planTier, recentSessions }: Das
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const pageTitle = useMemo(() => titleFromPath(pathname), [pathname])
+  const isChatRoute = pathname.startsWith("/chat")
 
   const handleSignOut = () => {
     startSignOut(async () => {
@@ -73,8 +74,8 @@ export function DashboardShell({ children, user, planTier, recentSessions }: Das
         recentSessions={recentSessions}
         navItems={navItems}
         accountActions={[
-          { id: "go-settings", label: "Open settings", href: "/dashboard/settings" },
-          { id: "go-billing", label: "Open billing", href: "/dashboard/billing" },
+          { id: "go-settings", label: "Open settings", href: "/settings" },
+          { id: "go-billing", label: "Open billing", href: "/billing" },
           { id: "logout", label: isSigningOut ? "Signing out..." : "Sign out", action: handleSignOut },
         ]}
       />
@@ -99,7 +100,13 @@ export function DashboardShell({ children, user, planTier, recentSessions }: Das
         />
         <div className="relative flex min-h-screen flex-col">
           <Topbar title={pageTitle} user={user} onOpenMobileNav={() => setMobileNavOpen(true)} />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 md:px-8 md:py-6">
+          <main
+            className={cn(
+              "w-full flex-1",
+              isChatRoute ? "p-0" : "px-4 py-4 md:px-8 md:py-6",
+              isChatRoute ? "max-w-none" : "mx-auto max-w-7xl"
+            )}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}
