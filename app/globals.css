@@ -109,6 +109,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.25);
   --radius-2xl: calc(var(--radius) * 1.5);
+  /* Used by Skeleton + `animate-shimmer` (Tailwind v4 is CSS-first; config file alone does not register this). */
+  --animate-shimmer: shimmer 2.2s linear infinite;
 }
 
 @keyframes shimmer {
@@ -363,6 +365,58 @@
     margin-block: 1.25rem;
     border: 0;
     border-top: 1px solid hsl(var(--color-border));
+  }
+
+  .chat-markdown :where(details) {
+    margin-block: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid hsl(var(--color-border));
+    background: hsl(var(--color-bg-elevated) / 0.45);
+    padding: 0.75rem 1rem;
+  }
+
+  .chat-markdown :where(summary) {
+    cursor: pointer;
+    font-weight: 500;
+    color: hsl(var(--color-text-primary));
+    outline: none;
+  }
+
+  .chat-markdown :where(summary:focus-visible) {
+    border-radius: 0.375rem;
+    box-shadow: 0 0 0 2px hsl(var(--color-bg)), 0 0 0 4px hsl(var(--color-accent) / 0.45);
+  }
+
+  .chat-markdown :where(kbd) {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.8125rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.375rem;
+    border: 1px solid hsl(var(--color-border));
+    background: hsl(var(--color-text-primary) / 0.08);
+    color: hsl(var(--color-text-primary));
+  }
+
+  .chat-markdown :where(dl) {
+    margin-block: 0.75rem 1rem;
+  }
+
+  .chat-markdown :where(dt) {
+    font-weight: 500;
+    margin-block-start: 0.5rem;
+    color: hsl(var(--color-text-primary));
+  }
+
+  .chat-markdown :where(dd) {
+    margin-inline-start: 1rem;
+    margin-block: 0.25rem 0.5rem;
+    color: hsl(var(--color-text-secondary));
+  }
+
+  .chat-markdown :where(img) {
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
   }
 
   .chat-code-block pre code.hljs {

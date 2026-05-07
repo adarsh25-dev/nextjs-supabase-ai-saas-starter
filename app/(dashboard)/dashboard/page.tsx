@@ -47,9 +47,9 @@ export default async function DashboardPage() {
         .eq("month_year", monthYear),
       supabase
         .from("chat_sessions")
-        .select("id, title, created_at")
+        .select("id, title, created_at, updated_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(6),
     ])
 

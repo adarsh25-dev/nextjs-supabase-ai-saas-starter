@@ -16,9 +16,9 @@ export async function GET() {
 
     const { data: latestSession, error: latestSessionError } = await supabase
       .from("chat_sessions")
-      .select("id, title, created_at")
+      .select("id, title, created_at, updated_at")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle()
 

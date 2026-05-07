@@ -1,9 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import mammoth from "mammoth";
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { formatChatTitle } from "@/lib/chat/format-chat-title";
 import { createClient } from "@/lib/supabase/server";
 import { getRateLimitForUser } from "@/lib/ratelimit";
 import {
@@ -25,6 +28,8 @@ const nvidia = createOpenAI({
 const NVIDIA_MODEL_DEFAULT =
   process.env.NVIDIA_MODEL_DEFAULT ?? "google/gemma-4-31b-it";
 const NVIDIA_MODEL_PRO = process.env.NVIDIA_MODEL_PRO ?? "google/gemma-4-31b-it";
+
+const MAX_EXTRACTED_DOC_CHARS = 24_000;
 
 const GEMMA_CHAT_SYSTEM_PROMPT = `You are an elite Next.js and Supabase full-stack architect embedded inside a premium developer SaaS product.
 
@@ -68,20 +73,35 @@ export async function POST(request: Request) {
       );
     }
 
-    const normalizedMessages = parsed.data.messages
-      .map(normalizeIncomingMessage)
-      .filter(
-        (
-          message,
-        ): message is {
-          role: "user" | "assistant" | "system";
-          content: string;
-        } => Boolean(message && message.content.trim()),
-      );
+    const rawUiMessages = parsed.data.messages
+      .map(normalizeToUiMessage)
+      .filter((message): message is UIMessage => Boolean(message));
 
-    if (normalizedMessages.length === 0) {
+    if (rawUiMessages.length === 0) {
       return NextResponse.json(
         { error: "No valid messages provided" },
+        { status: 400 },
+      );
+    }
+
+    const lastRawUser = [...rawUiMessages]
+      .reverse()
+      .find((message) => message.role === "user");
+    if (!lastRawUser || !userMessageHasPayload(lastRawUser)) {
+      return NextResponse.json(
+        { error: "No valid user message" },
+        { status: 400 },
+      );
+    }
+
+    const expandedMessages = await expandUserFilePartsInMessages(rawUiMessages);
+
+    const latestExpandedUser = [...expandedMessages]
+      .reverse()
+      .find((message) => message.role === "user");
+    if (!latestExpandedUser) {
+      return NextResponse.json(
+        { error: "No user message found" },
         { status: 400 },
       );
     }
@@ -166,10 +186,9 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      const firstUserMessage =
-        normalizedMessages.find((m) => m.role === "user")?.content ??
-        "New chat";
-      const title = firstUserMessage.trim().slice(0, 50) || "New chat";
+      const rawTitle =
+        firstUserTitleSource(rawUiMessages).trim().slice(0, 50) || "New chat";
+      const title = formatChatTitle(rawTitle) || rawTitle;
       const { data: newSession, error: sessionError } = await supabase
         .from("chat_sessions")
         .insert({
@@ -189,12 +208,12 @@ export async function POST(request: Request) {
       sessionId = newSession.id;
     }
 
-    const latestUserMessage = [...normalizedMessages]
-      .reverse()
-      .find((m) => m.role === "user");
-    if (!latestUserMessage) {
+    const persistedUserContent = formatUserMessageForPersistence(
+      latestExpandedUser,
+    );
+    if (!persistedUserContent.trim()) {
       return NextResponse.json(
-        { error: "No user message found" },
+        { error: "No valid messages provided" },
         { status: 400 },
       );
     }
@@ -202,7 +221,7 @@ export async function POST(request: Request) {
     const { error: userMessageInsertError } = await supabase.from("chat_messages").insert({
       session_id: sessionId,
       role: "user",
-      content: latestUserMessage.content,
+      content: persistedUserContent,
       tokens_used: 0,
     });
 
@@ -217,9 +236,18 @@ export async function POST(request: Request) {
 
     const maxOutputTokens = CHAT_MAX_OUTPUT_TOKENS[planTier];
 
-    const conversationMessages = normalizedMessages.filter(
+    const forModel = expandedMessages.map(({ id: _id, ...rest }) => rest);
+    const modelMessages = await convertToModelMessages(forModel);
+    const conversationMessages = modelMessages.filter(
       (message) => message.role !== "system",
     );
+
+    if (conversationMessages.length === 0) {
+      return NextResponse.json(
+        { error: "No valid messages provided" },
+        { status: 400 },
+      );
+    }
 
     const result = streamText({
       // NVIDIA's OpenAI-compatible endpoint supports Chat Completions.
@@ -230,10 +258,7 @@ export async function POST(request: Request) {
       temperature: 0.2,
       topP: 0.95,
       maxOutputTokens,
-      messages: conversationMessages.map((message) => ({
-        role: message.role,
-        content: message.content,
-      })),
+      messages: conversationMessages,
       onError: ({ error }) => {
         Sentry.captureException(error);
         // StreamText onError is side-effect only; do not return a value.
@@ -348,39 +373,209 @@ function isNvidiaPermissionDeniedError(error: unknown): boolean {
   );
 }
 
-function normalizeIncomingMessage(input: unknown) {
-  if (!input || typeof input !== "object") return null;
+type FileUiPart = Extract<UIMessage["parts"][number], { type: "file" }>;
 
+function normalizeToUiMessage(input: unknown): UIMessage | null {
+  if (!input || typeof input !== "object") return null;
   const message = input as {
+    id?: string;
     role?: string;
     content?: unknown;
-    parts?: Array<{ type?: string; text?: string }>;
+    parts?: UIMessage["parts"];
   };
-
   if (
     !message.role ||
     !["user", "assistant", "system"].includes(message.role)
   ) {
     return null;
   }
-
+  const id = typeof message.id === "string" ? message.id : randomUUID();
+  if (Array.isArray(message.parts)) {
+    return {
+      id,
+      role: message.role as UIMessage["role"],
+      parts: message.parts,
+    };
+  }
   if (typeof message.content === "string") {
     return {
-      role: message.role as "user" | "assistant" | "system",
-      content: message.content,
+      id,
+      role: message.role as UIMessage["role"],
+      parts: [{ type: "text", text: message.content }],
     };
   }
-
-  if (Array.isArray(message.parts)) {
-    const content = message.parts
-      .filter((part) => part?.type === "text" && typeof part.text === "string")
-      .map((part) => part.text)
-      .join("");
-    return {
-      role: message.role as "user" | "assistant" | "system",
-      content,
-    };
-  }
-
   return null;
+}
+
+function userMessageHasPayload(message: UIMessage): boolean {
+  const text = message.parts
+    .filter(
+      (part): part is Extract<typeof part, { type: "text"; text: string }> =>
+        part.type === "text",
+    )
+    .map((part) => part.text)
+    .join("")
+    .trim();
+  if (text.length > 0) return true;
+  return message.parts.some((part) => part.type === "file");
+}
+
+function firstUserTitleSource(messages: UIMessage[]): string {
+  const first = messages.find((m) => m.role === "user");
+  if (!first) return "New chat";
+  const text = first.parts
+    .filter(
+      (part): part is Extract<typeof part, { type: "text"; text: string }> =>
+        part.type === "text",
+    )
+    .map((part) => part.text)
+    .join(" ")
+    .trim();
+  if (text) return text;
+  const filePart = first.parts.find(
+    (part): part is FileUiPart => part.type === "file",
+  );
+  if (filePart?.filename) return filePart.filename;
+  return "New chat";
+}
+
+function truncateText(text: string, maxChars: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  return `${trimmed.slice(0, maxChars)}\n\n[…truncated…]`;
+}
+
+function parseDataUrl(dataUrl: string): { mediaType: string; base64: string } | null {
+  const match = dataUrl.match(/^data:([^;,]+);base64,(.+)$/);
+  if (!match) return null;
+  return { mediaType: match[1], base64: match[2] };
+}
+
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const result = await parser.getText();
+    return result.text?.trim() ?? "";
+  } finally {
+    await parser.destroy();
+  }
+}
+
+async function expandFileUiPart(part: FileUiPart): Promise<UIMessage["parts"]> {
+  const { url, mediaType, filename } = part;
+  if (mediaType.startsWith("image/")) {
+    return [part];
+  }
+  if (!url.startsWith("data:")) {
+    return [
+      {
+        type: "text",
+        text: `[Attached: ${filename ?? "file"} — only uploaded files from this chat are supported]\n`,
+      },
+    ];
+  }
+  const parsed = parseDataUrl(url);
+  if (!parsed) {
+    return [
+      {
+        type: "text",
+        text: `[Attached: ${filename ?? "file"} — could not read file data]\n`,
+      },
+    ];
+  }
+  const buf = Buffer.from(parsed.base64, "base64");
+  const lowerName = filename?.toLowerCase() ?? "";
+  const isPdf =
+    mediaType === "application/pdf" || lowerName.endsWith(".pdf");
+  const isDocx =
+    mediaType ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    lowerName.endsWith(".docx");
+  if (isPdf) {
+    const text = await extractPdfText(buf);
+    const label = filename ?? "document.pdf";
+    if (!text) {
+      return [
+        {
+          type: "text",
+          text: `[Extracted text from ${label}]\n(No extractable text found in this PDF.)\n`,
+        },
+      ];
+    }
+    return [
+      {
+        type: "text",
+        text: `[Extracted text from ${label}]\n${truncateText(text, MAX_EXTRACTED_DOC_CHARS)}`,
+      },
+    ];
+  }
+  if (isDocx) {
+    const { value } = await mammoth.extractRawText({ buffer: buf });
+    const label = filename ?? "document.docx";
+    const text = value.trim();
+    if (!text) {
+      return [
+        {
+          type: "text",
+          text: `[Extracted text from ${label}]\n(No extractable text found in this document.)\n`,
+        },
+      ];
+    }
+    return [
+      {
+        type: "text",
+        text: `[Extracted text from ${label}]\n${truncateText(text, MAX_EXTRACTED_DOC_CHARS)}`,
+      },
+    ];
+  }
+  return [
+    {
+      type: "text",
+      text: `[Attached: ${filename ?? "file"} (${mediaType}) — use an image, PDF, or Word document]\n`,
+    },
+  ];
+}
+
+async function expandUserFilePartsInMessages(
+  messages: UIMessage[],
+): Promise<UIMessage[]> {
+  const out: UIMessage[] = [];
+  for (const msg of messages) {
+    if (msg.role !== "user") {
+      out.push(msg);
+      continue;
+    }
+    const newParts: UIMessage["parts"] = [];
+    for (const part of msg.parts) {
+      if (part.type !== "file") {
+        newParts.push(part);
+        continue;
+      }
+      const expanded = await expandFileUiPart(part);
+      newParts.push(...expanded);
+    }
+    out.push({ ...msg, parts: newParts });
+  }
+  return out;
+}
+
+function formatUserMessageForPersistence(message: UIMessage): string {
+  const textParts = message.parts
+    .filter(
+      (part): part is Extract<typeof part, { type: "text"; text: string }> =>
+        part.type === "text",
+    )
+    .map((part) => part.text);
+  const fileParts = message.parts.filter(
+    (part): part is FileUiPart => part.type === "file",
+  );
+  let out = textParts.join("").trim();
+  if (fileParts.length > 0) {
+    const lines = fileParts.map(
+      (p) => `- ${p.filename ?? "file"} (${p.mediaType})`,
+    );
+    out = `${out}${out ? "\n\n" : ""}[Attachments]\n${lines.join("\n")}`;
+  }
+  return out.trim();
 }

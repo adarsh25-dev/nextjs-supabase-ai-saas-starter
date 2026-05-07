@@ -6,11 +6,12 @@ type ActivityPoint = {
 
 export function buildActivityData(
   totalMessages: number,
-  recentSessions: Array<{ created_at: string }>
+  recentSessions: Array<{ created_at: string; updated_at?: string }>
 ) {
   const sessionsByDay = new Map<string, number>()
   recentSessions.forEach((session) => {
-    const key = new Date(session.created_at).toISOString().slice(0, 10)
+    const activityAt = session.updated_at ?? session.created_at
+    const key = new Date(activityAt).toISOString().slice(0, 10)
     sessionsByDay.set(key, (sessionsByDay.get(key) ?? 0) + 1)
   })
 

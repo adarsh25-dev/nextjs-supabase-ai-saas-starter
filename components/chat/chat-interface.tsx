@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { AnimatePresence, motion } from "framer-motion";
-import { Bot, CircleAlert, Settings2, Sparkles } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  Bot,
+  CircleAlert,
+  PanelLeft,
+  Plus,
+  Settings2,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Message } from "@/components/chat/message";
-import type { ChatMessage } from "@/components/chat/types";
+import type { ChatAttachment, ChatMessage } from "@/components/chat/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MagneticButton } from "@/components/ui/primitives/MagneticButton";
+import { formatChatTitle } from "@/lib/chat/format-chat-title";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics/events";
 
@@ -33,9 +48,9 @@ type ChatInterfaceProps = {
   sessionTitle: string;
   initialMessages: ChatMessage[];
   onSessionCreated: (sessionId: string, title: string) => void;
+  onSessionActivity?: (sessionId: string) => void;
   onNewChat: () => void;
   onOpenSessionsMobile: () => void;
-  onRenameSession: (sessionId: string, title: string) => Promise<void>;
 };
 
 type ChatErrorKind = "rate-limit" | "monthly-limit" | "generic";
@@ -57,28 +72,31 @@ export function ChatInterface({
   sessionTitle,
   initialMessages,
   onSessionCreated,
+  onSessionActivity,
   onNewChat,
   onOpenSessionsMobile,
-  onRenameSession,
 }: ChatInterfaceProps) {
   const [chatError, setChatError] = useState<{
     kind: ChatErrorKind;
     message: string;
   } | null>(null);
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
-  const [editableTitle, setEditableTitle] = useState(sessionTitle);
-  const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [input, setInput] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(
     sessionId,
   );
+  const activitySessionRef = useRef<string | null>(sessionId);
   const [lastSentMessage, setLastSentMessage] = useState<string | null>(null);
   const [visibleMessagesCount, setVisibleMessagesCount] = useState(50);
   const [monthlyLimitDialogOpen, setMonthlyLimitDialogOpen] = useState(false);
   const inputFocusRef = useRef<(() => void) | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const collapseSentinelRef = useRef<HTMLDivElement | null>(null);
   const rateLimitToastFromFetchRef = useRef(false);
+  const prefersReducedMotion = useReducedMotion();
+  const [scrollPastFirstUser, setScrollPastFirstUser] = useState(false);
 
   const transformedInitialMessages = useMemo(
     () =>
@@ -112,7 +130,8 @@ export function ChatInterface({
             const payload = (await response
               .clone()
               .json()
-              .catch(() => ({}))) as ChatApiErrorPayload & Record<string, unknown>;
+              .catch(() => ({}))) as ChatApiErrorPayload &
+              Record<string, unknown>;
             if (response.status === 429) {
               const title =
                 typeof payload.error === "string"
@@ -181,6 +200,12 @@ export function ChatInterface({
   const { messages, setMessages, sendMessage, status, error } = useChat({
     transport,
     messages: transformedInitialMessages,
+    onFinish: () => {
+      const sid = activitySessionRef.current;
+      if (sid) {
+        onSessionActivity?.(sid);
+      }
+    },
     onError: (error) => {
       const message = error.message || "Unexpected chat error";
       const fromJson = extractChatApiErrorPayload(message);
@@ -221,10 +246,15 @@ export function ChatInterface({
 
   useEffect(() => {
     setCurrentSessionId(sessionId);
+    activitySessionRef.current = sessionId;
     setMessages(transformedInitialMessages);
-    setEditableTitle(sessionTitle);
     setVisibleMessagesCount(50);
+    setScrollPastFirstUser(false);
   }, [sessionId, sessionTitle, setMessages, transformedInitialMessages]);
+
+  useEffect(() => {
+    activitySessionRef.current = currentSessionId ?? sessionId;
+  }, [sessionId, currentSessionId]);
 
   useEffect(() => {
     if (!error) return;
@@ -240,6 +270,13 @@ export function ChatInterface({
     setChatError({ kind: "generic", message: error.message });
   }, [error]);
 
+  const scrollToTop = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: 0, behavior: "auto" });
+    }
+  };
+
   const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
     const container = scrollContainerRef.current;
     if (container) {
@@ -252,12 +289,16 @@ export function ChatInterface({
     endRef.current?.scrollIntoView({ behavior });
   };
 
-  useEffect(() => {
-    scrollToBottom("smooth");
-  }, [messages.length]);
+  useLayoutEffect(() => {
+    if (initialMessages.length === 0) return;
+    scrollToTop();
+  }, [sessionId, initialMessages]);
 
   useEffect(() => {
-    if (status !== "streaming") return;
+    const isGenerating =
+      status === "streaming" || status === "submitted";
+
+    if (!isGenerating) return;
 
     let frameId: number;
     const tick = () => {
@@ -297,17 +338,32 @@ export function ChatInterface({
     rateLimitToastFromFetchRef.current = false;
     setChatError(null);
     const cleanInput = input.trim();
-    if (!cleanInput) return;
+    if (!cleanInput && attachedFiles.length === 0) return;
 
     if (!currentSessionId) {
-      setPendingTitle(cleanInput.slice(0, 50));
+      const titleSeed =
+        cleanInput.slice(0, 50) ||
+        attachedFiles[0]?.name.slice(0, 50) ||
+        "New chat";
+      setPendingTitle(titleSeed);
     }
 
-    setLastSentMessage(cleanInput);
+    setLastSentMessage(
+      cleanInput || (attachedFiles.length ? "[Message with attachments]" : ""),
+    );
     trackEvent("chat_message_sent", { sessionId: currentSessionId ?? "new" });
     setInput("");
+    const dt = new DataTransfer();
+    attachedFiles.forEach((file) => dt.items.add(file));
+    const filesPayload = attachedFiles.length > 0 ? dt.files : undefined;
+    setAttachedFiles([]);
     void sendMessage(
-      { text: cleanInput },
+      {
+        text:
+          cleanInput ||
+          (filesPayload?.length ? "Please use the attached file(s)." : ""),
+        ...(filesPayload?.length ? { files: filesPayload } : {}),
+      },
       {
         body: {
           sessionId: currentSessionId ?? undefined,
@@ -354,82 +410,255 @@ export function ChatInterface({
     );
   };
 
+  const canRegenerate = useMemo(() => {
+    if (status === "submitted" || status === "streaming") return false;
+    return messages.some(
+      (message) =>
+        message.role === "user" && Boolean(extractTextFromMessage(message)),
+    );
+  }, [messages, status]);
+
   const visibleMessages =
     messages.length > visibleMessagesCount
       ? messages.slice(-visibleMessagesCount)
       : messages;
 
-  const commitTitleRename = async () => {
-    if (!currentSessionId) {
-      setIsTitleEditing(false);
+  const tailOffset =
+    messages.length > visibleMessages.length
+      ? messages.length - visibleMessages.length
+      : 0;
+
+  const globalFirstUserIndex = messages.findIndex((m) => m.role === "user");
+
+  const firstUserRendered =
+    globalFirstUserIndex !== -1 && globalFirstUserIndex >= tailOffset;
+
+  const visibleIndexOfFirstUser =
+    globalFirstUserIndex === -1 || !firstUserRendered
+      ? -1
+      : globalFirstUserIndex - tailOffset;
+
+  const displayTitle =
+    formatChatTitle(sessionTitle.trim() || "New chat") ||
+    sessionTitle.trim() ||
+    "New chat";
+
+  const titleCollapsed =
+    messages.length > 0 && (!firstUserRendered || scrollPastFirstUser);
+
+  const showCompactNavTitle = messages.length === 0 || titleCollapsed;
+
+  const showCollapsedTitlePill = titleCollapsed && messages.length > 0;
+
+  const titleMotionTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const };
+
+  const pillChromeTransition = prefersReducedMotion
+    ? { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const }
+    : { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const };
+
+  const updateScrollPastFirstUser = useCallback(() => {
+    if (!firstUserRendered) {
+      setScrollPastFirstUser(false);
       return;
     }
-    const title = editableTitle.trim() || "New chat";
-    await onRenameSession(currentSessionId, title);
-    setIsTitleEditing(false);
-  };
+    const root = scrollContainerRef.current;
+    const sentinel = collapseSentinelRef.current;
+    if (!root || !sentinel) {
+      setScrollPastFirstUser(false);
+      return;
+    }
+    const rootRect = root.getBoundingClientRect();
+    const sentinelRect = sentinel.getBoundingClientRect();
+    const threshold = rootRect.top + 76;
+    setScrollPastFirstUser(sentinelRect.top < threshold);
+  }, [firstUserRendered]);
+
+  useEffect(() => {
+    const root = scrollContainerRef.current;
+    if (!root) return;
+
+    let raf = 0;
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateScrollPastFirstUser);
+    };
+
+    root.addEventListener("scroll", scheduleUpdate, { passive: true });
+    const ro = new ResizeObserver(scheduleUpdate);
+    ro.observe(root);
+
+    scheduleUpdate();
+
+    return () => {
+      root.removeEventListener("scroll", scheduleUpdate);
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [updateScrollPastFirstUser, messages, visibleMessagesCount]);
+
+  useEffect(() => {
+    updateScrollPastFirstUser();
+  }, [updateScrollPastFirstUser, messages, status]);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-[hsl(var(--color-bg))]">
-      <div className="border-b border-[hsl(var(--color-border))] px-4 py-3">
-        <div className="mx-auto flex w-full items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
+      <nav
+        className="pointer-events-none absolute inset-x-0 top-0 z-40 pt-[max(0.75rem,env(safe-area-inset-top))]"
+        aria-label="Chat controls"
+      >
+        <div className="pointer-events-auto flex w-full items-start justify-between gap-3 px-3 pb-2 md:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+            <Button
               type="button"
-              className="glass rounded-lg border border-[hsl(var(--color-border))] px-2 py-1 text-xs text-[hsl(var(--color-text-secondary))] lg:hidden"
+              variant="ghost"
+              size="sm"
+              className="h-8 shrink-0 gap-1.5 px-2 text-[hsl(var(--color-text-secondary))] hover:text-[hsl(var(--color-text-primary))] lg:hidden"
               onClick={onOpenSessionsMobile}
             >
-              Sessions
-            </button>
-            {isTitleEditing ? (
-              <input
-                value={editableTitle}
-                onChange={(event) => setEditableTitle(event.target.value)}
-                onBlur={() => void commitTitleRename()}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void commitTitleRename();
-                  }
-                }}
-                className="w-56 rounded-md border border-[hsl(var(--color-border))] bg-transparent px-2 py-1 text-sm text-[hsl(var(--color-text-primary))] outline-none"
-                autoFocus
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsTitleEditing(true)}
-                className="font-display text-sm text-[hsl(var(--color-text-primary))] hover:text-[hsl(var(--color-accent-soft))]"
+              <PanelLeft className="size-4" aria-hidden />
+              <span className="text-xs font-medium">Chats</span>
+            </Button>
+            {showCompactNavTitle ? (
+              <motion.div
+                initial={false}
+                animate={{ opacity: 1 }}
+                transition={titleMotionTransition}
+                className="relative min-w-0 w-fit max-w-[min(100%,18rem)] overflow-visible sm:max-w-[min(100%,28rem)]"
               >
-                {editableTitle || "New chat"}
-              </button>
+                <AnimatePresence>
+                  {showCollapsedTitlePill ? (
+                    <motion.div
+                      key="nav-title-pill-backdrop"
+                      aria-hidden
+                      initial={
+                        prefersReducedMotion
+                          ? { opacity: 0 }
+                          : { opacity: 0, scale: 0.78, y: -12 }
+                      }
+                      animate={
+                        prefersReducedMotion
+                          ? { opacity: 1 }
+                          : { opacity: 1, scale: 1, y: 0 }
+                      }
+                      exit={
+                        prefersReducedMotion
+                          ? { opacity: 0 }
+                          : { opacity: 0, scale: 0.9, y: -8 }
+                      }
+                      transition={pillChromeTransition}
+                      className="pointer-events-none absolute inset-0 z-0 rounded-full border border-[hsl(var(--color-border)/0.55)] bg-[hsl(var(--color-bg-elevated)/0.42)] shadow-[0_4px_28px_-10px_hsl(var(--color-accent)/0.22)] backdrop-blur-md supports-[backdrop-filter]:bg-[hsl(var(--color-bg-elevated)/0.36)]"
+                      style={{
+                        transformOrigin: "50% 40%",
+                        willChange: "transform, opacity",
+                      }}
+                    />
+                  ) : null}
+                </AnimatePresence>
+                <motion.div
+                  className="relative z-10 flex min-w-0 w-full max-w-full items-center gap-1.5 text-left"
+                  animate={{
+                    paddingLeft: showCollapsedTitlePill ? 12 : 0,
+                    paddingRight: showCollapsedTitlePill ? 12 : 0,
+                    paddingTop: showCollapsedTitlePill ? 4 : 2,
+                    paddingBottom: showCollapsedTitlePill ? 4 : 2,
+                    borderRadius: showCollapsedTitlePill ? 9999 : 8,
+                  }}
+                  transition={pillChromeTransition}
+                >
+                  <span className="font-display min-w-0 truncate text-sm font-medium tracking-[-0.04em] text-[hsl(var(--color-text-primary))] sm:text-base">
+                    {displayTitle}
+                  </span>
+                </motion.div>
+              </motion.div>
+            ) : (
+              <div className="min-h-8 min-w-0 flex-1" aria-hidden />
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="glass inline-flex items-center gap-2 rounded-lg border border-[hsl(var(--color-border))] px-2.5 py-1.5 text-xs text-[hsl(var(--color-text-secondary))]">
-              <Settings2 className="size-3.5" />
-              Settings
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="glass border border-[hsl(var(--color-border))]"
-              align="end"
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-lg"
+              className="text-[hsl(var(--color-text-secondary))] hover:text-[hsl(var(--color-text-primary))]"
+              aria-label="New chat"
+              title="New chat (⌘L)"
+              onClick={onNewChat}
             >
-              <DropdownMenuItem>Model: Gemma 4</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleRegenerate}>
-                Regenerate last response
-              </DropdownMenuItem>
-              <DropdownMenuItem>Export conversation</DropdownMenuItem>
-              <DropdownMenuItem>Share</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <Plus className="size-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2 text-[hsl(var(--color-text-secondary))] hover:text-[hsl(var(--color-text-primary))] sm:px-2.5"
+                  aria-label="Chat options"
+                >
+                  <Settings2 className="size-3.5 shrink-0" aria-hidden />
+                  <span className="hidden text-xs font-medium sm:inline">
+                    Options
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] text-[hsl(var(--color-text-primary))]"
+              >
+                <DropdownMenuItem
+                  disabled={!canRegenerate}
+                  onSelect={() => handleRegenerate()}
+                  className="cursor-pointer text-[hsl(var(--color-text-primary))] focus:bg-[hsl(var(--color-bg))] focus:text-[hsl(var(--color-text-primary))] data-[highlighted]:bg-[hsl(var(--color-bg))] data-[highlighted]:text-[hsl(var(--color-text-primary))]"
+                >
+                  Regenerate last response
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer text-[hsl(var(--color-text-primary))] focus:bg-[hsl(var(--color-bg))] focus:text-[hsl(var(--color-text-primary))] data-[highlighted]:bg-[hsl(var(--color-bg))] data-[highlighted]:text-[hsl(var(--color-text-primary))]">
+                  Export conversation
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer text-[hsl(var(--color-text-primary))] focus:bg-[hsl(var(--color-bg))] focus:text-[hsl(var(--color-text-primary))] data-[highlighted]:bg-[hsl(var(--color-bg))] data-[highlighted]:text-[hsl(var(--color-text-primary))]">
+                  Share
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
+      </nav>
 
       <div
         ref={scrollContainerRef}
-        className="relative z-0 min-h-0 flex-1 overflow-y-auto"
+        className="relative z-0 min-h-0 flex-1 overflow-y-auto scroll-pt-16"
       >
-        <div className="mx-auto w-full max-w-5xl px-3 pb-52 pt-6 md:px-6">
+        <div className="mx-auto w-full max-w-5xl px-3 pb-52 pt-10 md:px-6 md:pt-11">
+          {messages.length > 0 && firstUserRendered ? (
+            <motion.div
+              initial={false}
+              animate={{
+                opacity: titleCollapsed ? 0 : 1,
+                maxHeight: titleCollapsed ? 0 : 220,
+                marginBottom: titleCollapsed ? 0 : 24,
+              }}
+              transition={titleMotionTransition}
+              className="overflow-hidden"
+              aria-hidden={titleCollapsed}
+            >
+              <div className="origin-top pt-1">
+                <motion.h1
+                  initial={false}
+                  animate={{
+                    opacity: titleCollapsed ? 0 : 1,
+                    scale: titleCollapsed ? 0.97 : 1,
+                  }}
+                  transition={titleMotionTransition}
+                  className="font-display max-w-3xl text-2xl font-medium tracking-[-0.04em] text-[hsl(var(--color-text-primary))] sm:text-3xl md:text-4xl"
+                >
+                  {displayTitle}
+                </motion.h1>
+              </div>
+            </motion.div>
+          ) : null}
+
           {messages.length === 0 ? (
             <div className="flex min-h-[52vh] flex-col items-center justify-center space-y-6 text-center">
               <div>
@@ -494,6 +723,7 @@ export function ChatInterface({
                         created_at:
                           initialTimestampById.get(message.id) ??
                           new Date().toISOString(),
+                        attachments: extractAttachmentsFromUiMessage(message),
                       }}
                       isStreaming={
                         status === "streaming" &&
@@ -502,6 +732,14 @@ export function ChatInterface({
                       }
                       onRegenerate={handleRegenerate}
                     />
+                    {visibleIndexOfFirstUser !== -1 &&
+                    index === visibleIndexOfFirstUser ? (
+                      <div
+                        ref={collapseSentinelRef}
+                        className="pointer-events-none h-px w-full shrink-0"
+                        aria-hidden
+                      />
+                    ) : null}
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -593,6 +831,8 @@ export function ChatInterface({
             isStreaming={status === "streaming" || status === "submitted"}
             isDisabled={chatError?.kind === "monthly-limit"}
             onStop={() => undefined}
+            attachedFiles={attachedFiles}
+            onAttachedFilesChange={setAttachedFiles}
             onFocusRequest={(focus) => {
               inputFocusRef.current = focus;
             }}
@@ -661,6 +901,20 @@ function extractTextFromMessage(message: UIMessage) {
     )
     .map((part) => part.text)
     .join("");
+}
+
+function extractAttachmentsFromUiMessage(
+  message: UIMessage,
+): ChatAttachment[] | undefined {
+  const files = message.parts.filter(
+    (part): part is Extract<typeof part, { type: "file" }> =>
+      part.type === "file",
+  );
+  if (files.length === 0) return undefined;
+  return files.map((part) => ({
+    filename: part.filename,
+    mediaType: part.mediaType,
+  }));
 }
 
 function TypingDots() {

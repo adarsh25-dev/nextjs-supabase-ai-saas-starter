@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { renameSession } from "@/app/(dashboard)/chat/actions"
 import type { ChatSession } from "@/components/chat/types"
+import { formatChatTitle } from "@/lib/chat/format-chat-title"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -85,30 +86,36 @@ export function SessionsSidebar({
 
   const openRenameDialog = (session: ChatSession) => {
     setRenameTarget(session)
-    setRenameTitleValue(session.title)
+    setRenameTitleValue(formatChatTitle(session.title) || session.title)
     setRenameOpen(true)
   }
 
   const submitRename = () => {
     if (!renameTarget) return
-    const title = renameTitleValue.trim()
-    if (!title) {
+    const displayTitle =
+      formatChatTitle(renameTitleValue.trim()) || renameTitleValue.trim()
+    if (!displayTitle) {
       toast.error("Enter a title for this chat.")
       return
     }
-    if (title === renameTarget.title) {
+    const previousTitle =
+      formatChatTitle(renameTarget.title) || renameTarget.title
+    if (displayTitle === previousTitle) {
       setRenameOpen(false)
       setRenameTarget(null)
       return
     }
 
     startTransition(async () => {
-      const result = await renameSession({ sessionId: renameTarget.id, title })
+      const result = await renameSession({
+        sessionId: renameTarget.id,
+        title: displayTitle,
+      })
       if (!result.ok) {
         toast.error(result.error ?? "Failed to rename chat")
         return
       }
-      onSessionRenamed(renameTarget.id, title)
+      onSessionRenamed(renameTarget.id, displayTitle)
       toast.success("Session renamed")
       setRenameOpen(false)
       setRenameTarget(null)
@@ -269,7 +276,7 @@ export function SessionsSidebar({
             </DialogTitle>
             <DialogDescription className="text-[hsl(var(--color-text-secondary))]">
               {deleteTarget
-                ? `“${deleteTarget.title}” and its messages will be removed. This cannot be undone.`
+                ? `“${formatChatTitle(deleteTarget.title) || deleteTarget.title}” and its messages will be removed. This cannot be undone.`
                 : "This session and its messages will be removed. This cannot be undone."}
             </DialogDescription>
           </DialogHeader>
@@ -324,13 +331,13 @@ function SessionRow({
               : "text-[hsl(var(--color-text-primary))]",
           )}
         >
-          {session.title}
+          {formatChatTitle(session.title) || session.title}
         </p>
         <time
-          dateTime={session.created_at}
+          dateTime={session.updated_at ?? session.created_at}
           className="mt-0.5 block truncate font-mono text-[10px] tabular-nums text-[hsl(var(--color-text-secondary)/0.85)]"
         >
-          {formatSessionTimestamp(session.created_at)}
+          {formatSessionTimestamp(session.updated_at ?? session.created_at)}
         </time>
       </button>
       <DropdownMenu>

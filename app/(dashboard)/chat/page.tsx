@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: "Stream AI responses, manage sessions, and continue conversations.",
 }
 
+const SESSION_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export default async function ChatPage({
   searchParams,
 }: {
@@ -23,30 +26,53 @@ export default async function ChatPage({
     redirect("/login?next=/chat")
   }
 
-  const { data: sessions } = await supabase
+  const paramSession = searchParams.session
+
+  const sessionsQuery = supabase
     .from("chat_sessions")
-    .select("id, title, created_at")
+    .select("id, title, created_at, updated_at")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
+    .order("updated_at", { ascending: false })
 
-  const activeSessionId =
-    searchParams.session && sessions?.some((session) => session.id === searchParams.session)
-      ? searchParams.session
-      : sessions?.[0]?.id
+  const messagesForParamPromise =
+    paramSession && SESSION_UUID_RE.test(paramSession)
+      ? supabase
+          .from("chat_messages")
+          .select("id, role, content, created_at")
+          .eq("session_id", paramSession)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: null })
 
-  const { data: messages } = activeSessionId
-    ? await supabase
-        .from("chat_messages")
-        .select("id, role, content, created_at")
-        .eq("session_id", activeSessionId)
-        .order("created_at", { ascending: true })
-    : { data: [] }
+  const [{ data: sessions }, paramMessagesResult] = await Promise.all([
+    sessionsQuery,
+    messagesForParamPromise,
+  ])
+
+  const sessionList = sessions ?? []
+
+  const paramOwned =
+    Boolean(paramSession) && sessionList.some((session) => session.id === paramSession)
+
+  const activeSessionId = paramOwned
+    ? paramSession!
+    : sessionList[0]?.id ?? null
+
+  let initialMessages = paramOwned ? (paramMessagesResult.data ?? []) : []
+
+  if (!paramOwned && activeSessionId) {
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("id, role, content, created_at")
+      .eq("session_id", activeSessionId)
+      .order("created_at", { ascending: true })
+    initialMessages = data ?? []
+  }
 
   return (
     <ChatLayout
-      initialSessions={sessions ?? []}
-      initialSessionId={activeSessionId ?? null}
-      initialMessages={messages ?? []}
+      initialSessions={sessionList}
+      initialSessionId={activeSessionId}
+      initialMessages={initialMessages}
     />
   )
 }

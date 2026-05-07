@@ -8,6 +8,7 @@ import { CreditCard, Home, LogOut, MessageSquare, Moon, Search, Settings, UserRo
 import type { ComponentType } from "react"
 
 import { signOut } from "@/app/(auth)/actions"
+import { formatChatTitle } from "@/lib/chat/format-chat-title"
 
 type CommandAction = {
   id: string
@@ -150,7 +151,10 @@ export function CommandPalette({ recentSessions = [], navItems = fallbackNav, ac
                       key={session.id}
                       action={{
                         id: session.id,
-                        label: session.title || "Untitled chat",
+                        label:
+                          formatChatTitle(session.title || "Untitled chat") ||
+                          session.title ||
+                          "Untitled chat",
                         keywords: "chat session recent",
                         icon: MessageSquare,
                         run: () => router.push(`/chat?session=${session.id}`),

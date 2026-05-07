@@ -1,18 +1,11 @@
 "use client"
 
-import { Bell, Menu, Plus } from "lucide-react"
+import { Menu, Plus } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { MagneticButton } from "@/components/ui/primitives/MagneticButton"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +13,8 @@ type TopbarProps = {
   title: string
   user: { name: string; avatarUrl: string | null; email: string }
   onOpenMobileNav: () => void
+  /** Hide primary “New chat” CTA (e.g. on `/chat` where the sidebar already starts chats). */
+  showNewChatButton?: boolean
 }
 
 function initialsFromName(name: string, email: string) {
@@ -29,7 +24,12 @@ function initialsFromName(name: string, email: string) {
   return pieces.map((piece) => piece.charAt(0).toUpperCase()).join("")
 }
 
-export function Topbar({ title, user, onOpenMobileNav }: TopbarProps) {
+export function Topbar({
+  title,
+  user,
+  onOpenMobileNav,
+  showNewChatButton = true,
+}: TopbarProps) {
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const initials = initialsFromName(user.name, user.email)
@@ -61,33 +61,26 @@ export function Topbar({ title, user, onOpenMobileNav }: TopbarProps) {
         <h1 className="font-display text-xl font-medium tracking-tight text-[hsl(var(--color-text-primary))]">{title}</h1>
       </div>
       <div className="flex items-center gap-3">
-        <MagneticButton
-          variant="primary"
-          className="h-9 px-3 text-xs md:text-sm"
-          onClick={() => router.push("/chat")}
+        {showNewChatButton ? (
+          <MagneticButton
+            variant="primary"
+            className="h-9 px-3 text-xs md:text-sm"
+            onClick={() => router.push("/chat")}
+          >
+            <Plus className="mr-1 size-4" /> New chat
+          </MagneticButton>
+        ) : null}
+
+        <Link
+          href="/settings"
+          className="rounded-full outline-none ring-offset-2 ring-offset-[hsl(var(--color-bg))] transition-[box-shadow] hover:ring-2 hover:ring-[hsl(var(--color-accent-soft)/0.5)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-accent))]"
+          aria-label="Account settings"
         >
-          <Plus className="mr-1 size-4" /> New chat
-        </MagneticButton>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger className="relative glass inline-flex size-9 items-center justify-center rounded-lg border border-[hsl(var(--color-text-primary)/0.12)]">
-            <Bell className="size-4" />
-            <span className="absolute right-1.5 top-1.5 inline-flex size-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="glass border border-[hsl(var(--color-text-primary)/0.14)]">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>No new notifications</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Avatar className="size-8 ring-1 ring-transparent transition-all hover:ring-[hsl(var(--color-accent-soft)/0.6)]">
-          <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
+          <Avatar className="size-8">
+            <AvatarImage src={user.avatarUrl ?? undefined} alt="" />
+            <AvatarFallback aria-hidden>{initials}</AvatarFallback>
+          </Avatar>
+        </Link>
       </div>
     </header>
   )

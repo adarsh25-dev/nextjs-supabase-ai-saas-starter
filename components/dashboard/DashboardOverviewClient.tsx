@@ -30,6 +30,7 @@ import {
   usageBarColor,
   usageBarGradient,
 } from "@/lib/dashboard/metrics"
+import { formatChatTitle } from "@/lib/chat/format-chat-title"
 import { cn } from "@/lib/utils"
 
 type DashboardOverviewClientProps = {
@@ -39,7 +40,12 @@ type DashboardOverviewClientProps = {
   totalMessages: number
   tokensThisMonth: number
   monthlyMessageLimit: number
-  recentSessions: Array<{ id: string; title: string; created_at: string }>
+  recentSessions: Array<{
+    id: string
+    title: string
+    created_at: string
+    updated_at?: string
+  }>
 }
 
 function getGreetingPrefix() {
@@ -375,11 +381,13 @@ export function DashboardOverviewClient({
                       <span className="text-xs text-[hsl(var(--color-text-secondary))]">AI assistant</span>
                     </div>
                     <span className="text-[11px] text-[hsl(var(--color-text-secondary))]">
-                      {relativeTimeLabel(session.created_at)}
+                      {relativeTimeLabel(session.updated_at ?? session.created_at)}
                     </span>
                   </div>
                   <p className="truncate text-sm font-medium text-[hsl(var(--color-text-primary))]">
-                    {session.title || "Untitled conversation"}
+                    {formatChatTitle(session.title || "Untitled conversation") ||
+                      session.title ||
+                      "Untitled conversation"}
                   </p>
                   <p className="mt-2 max-h-9 overflow-hidden text-xs text-[hsl(var(--color-text-secondary))]">
                     Continue where you left off in this conversation and keep building momentum.

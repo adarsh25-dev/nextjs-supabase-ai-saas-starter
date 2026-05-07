@@ -3,6 +3,7 @@
 import * as Sentry from "@sentry/nextjs"
 import { z } from "zod"
 
+import { formatChatTitle } from "@/lib/chat/format-chat-title"
 import { createClient } from "@/lib/supabase/server"
 
 const renameSessionSchema = z.object({
@@ -29,9 +30,11 @@ export async function renameSession(input: {
       return { ok: false, error: "Unauthorized." }
     }
 
+    const displayTitle = formatChatTitle(parsed.data.title) || parsed.data.title
+
     const { error } = await supabase
       .from("chat_sessions")
-      .update({ title: parsed.data.title })
+      .update({ title: displayTitle })
       .eq("id", parsed.data.sessionId)
       .eq("user_id", user.id)
 

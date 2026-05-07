@@ -23,7 +23,12 @@ type SidebarProps = {
   user: { name: string; email: string; avatarUrl: string | null }
   planTier: "free" | "starter" | "pro" | "business"
   navItems: DashboardNavItem[]
-  recentSessions: Array<{ id: string; title: string; created_at: string }>
+  recentSessions: Array<{
+    id: string
+    title: string
+    created_at: string
+    updated_at?: string
+  }>
   onSignOut: () => void
   isSigningOut: boolean
   mobileOpen: boolean
