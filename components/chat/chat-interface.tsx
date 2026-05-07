@@ -61,10 +61,26 @@ type ChatApiErrorPayload = {
 };
 
 const suggestedPrompts = [
-  "Summarize this week’s goals into a checklist",
-  "Draft a launch announcement for a new SaaS feature",
-  "Give me a growth strategy for my AI startup",
-  "Create a launch plan for my next product update",
+  {
+    label: "Database Scaling",
+    prompt:
+      "Review my Supabase database schema for scaling bottlenecks and suggest indexing strategies.",
+  },
+  {
+    label: "Rate Limiting",
+    prompt:
+      "Generate a production-ready rate-limiting middleware using Upstash Redis.",
+  },
+  {
+    label: "React Performance",
+    prompt:
+      "Explain how to refactor a complex React component to minimize unnecessary re-renders using useMemo and useCallback.",
+  },
+  {
+    label: "Security Policies",
+    prompt:
+      "Draft a robust Row Level Security (RLS) policy for a multi-tenant SaaS table.",
+  },
 ];
 
 export function ChatInterface({
@@ -372,9 +388,30 @@ export function ChatInterface({
     );
   };
 
-  const injectPrompt = (prompt: string) => {
-    setInput(prompt);
-    setTimeout(() => inputFocusRef.current?.(), 0);
+  const submitPrompt = (prompt: string) => {
+    if (status === "submitted" || status === "streaming") return;
+    rateLimitToastFromFetchRef.current = false;
+    setChatError(null);
+    const text = prompt.trim();
+    if (!text) return;
+
+    if (!currentSessionId) {
+      setPendingTitle(text.slice(0, 50));
+    }
+
+    setLastSentMessage(text);
+    trackEvent("chat_message_sent", { sessionId: currentSessionId ?? "new" });
+    setInput("");
+    setAttachedFiles([]);
+
+    void sendMessage(
+      { text },
+      {
+        body: {
+          sessionId: currentSessionId ?? undefined,
+        },
+      },
+    );
   };
 
   const retryLastMessage = () => {
@@ -672,19 +709,32 @@ export function ChatInterface({
                   Ask anything and get a streaming response instantly.
                 </p>
               </div>
-              <div className="grid w-full gap-3 sm:grid-cols-2">
-                {suggestedPrompts.map((prompt, index) => (
+              <div className="grid w-full max-w-4xl gap-3 sm:grid-cols-2">
+                {suggestedPrompts.map(({ label, prompt }) => (
                   <button
-                    key={prompt}
-                    className="gradient-border rounded-xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--color-accent)/0.65)]"
-                    onClick={() => injectPrompt(prompt)}
+                    key={label}
+                    type="button"
+                    className={cn(
+                      "group gradient-border rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated)/0.72)] p-4 text-left",
+                      "shadow-[0_0_0_1px_hsl(var(--color-text-primary)/0.02)_inset] backdrop-blur-sm",
+                      "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                      "hover:-translate-y-0.5 hover:border-[hsl(var(--color-accent)/0.55)] hover:bg-[hsl(var(--color-bg-elevated)/0.92)] hover:shadow-[0_16px_42px_-26px_hsl(var(--color-accent)/0.65)]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-accent))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--color-bg))]",
+                      (status === "submitted" || status === "streaming") &&
+                        "cursor-not-allowed opacity-60",
+                    )}
+                    onClick={() => submitPrompt(prompt)}
+                    disabled={status === "submitted" || status === "streaming"}
                   >
-                    <Sparkles className="mb-2 size-4 text-[hsl(var(--color-accent-soft))]" />
-                    <p className="text-sm text-[hsl(var(--color-text-primary))]">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg)/0.45)] px-2.5 py-1 text-[11px] text-[hsl(var(--color-accent-soft))]">
+                      <Sparkles className="size-3.5" />
+                      <span className="font-medium tracking-[-0.01em]">{label}</span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-[hsl(var(--color-text-primary))]">
                       {prompt}
                     </p>
-                    <p className="mt-1 text-xs text-[hsl(var(--color-text-secondary))]">
-                      Suggestion {index + 1}
+                    <p className="mt-3 text-[11px] text-[hsl(var(--color-text-secondary))] transition-colors group-hover:text-[hsl(var(--color-accent-soft))]">
+                      Click to run this prompt
                     </p>
                   </button>
                 ))}

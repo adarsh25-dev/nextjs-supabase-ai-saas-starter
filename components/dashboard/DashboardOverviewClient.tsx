@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Area,
   AreaChart,
@@ -12,7 +12,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
+} from "recharts";
 import {
   ArrowUpRight,
   Bot,
@@ -21,50 +21,43 @@ import {
   Rocket,
   Settings,
   Sparkles,
-} from "lucide-react"
+} from "lucide-react";
 
-import { StatCard } from "@/components/dashboard/StatCard"
+import { StatCard } from "@/components/dashboard/StatCard";
 import {
   buildActivityData,
   buildSparkline,
   usageBarColor,
   usageBarGradient,
-} from "@/lib/dashboard/metrics"
-import { formatChatTitle } from "@/lib/chat/format-chat-title"
-import { cn } from "@/lib/utils"
+} from "@/lib/dashboard/metrics";
+import { formatChatTitle } from "@/lib/chat/format-chat-title";
+import { cn } from "@/lib/utils";
 
 type DashboardOverviewClientProps = {
-  name: string
-  planTier: "free" | "starter" | "pro" | "business"
-  totalChatsThisMonth: number
-  totalMessages: number
-  tokensThisMonth: number
-  monthlyMessageLimit: number
+  name: string;
+  planTier: "free" | "starter" | "pro" | "business";
+  totalChatsThisMonth: number;
+  totalMessages: number;
+  tokensThisMonth: number;
+  monthlyMessageLimit: number;
   recentSessions: Array<{
-    id: string
-    title: string
-    created_at: string
-    updated_at?: string
-  }>
-}
-
-function getGreetingPrefix() {
-  const hour = new Date().getHours()
-  if (hour < 12) return "Good morning"
-  if (hour < 18) return "Good afternoon"
-  return "Good evening"
-}
+    id: string;
+    title: string;
+    created_at: string;
+    updated_at?: string;
+  }>;
+};
 
 function relativeTimeLabel(isoDate: string) {
-  const date = new Date(isoDate)
-  const diffMs = date.getTime() - Date.now()
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
-  const minutes = Math.round(diffMs / (1000 * 60))
-  if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute")
-  const hours = Math.round(minutes / 60)
-  if (Math.abs(hours) < 24) return rtf.format(hours, "hour")
-  const days = Math.round(hours / 24)
-  return rtf.format(days, "day")
+  const date = new Date(isoDate);
+  const diffMs = date.getTime() - Date.now();
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const minutes = Math.round(diffMs / (1000 * 60));
+  if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 24) return rtf.format(hours, "hour");
+  const days = Math.round(hours / 24);
+  return rtf.format(days, "day");
 }
 
 export function DashboardOverviewClient({
@@ -76,51 +69,80 @@ export function DashboardOverviewClient({
   monthlyMessageLimit,
   recentSessions,
 }: DashboardOverviewClientProps) {
-  const [range, setRange] = useState<7 | 30 | 90>(30)
-  const greetingPrefix = getGreetingPrefix()
+  const [range, setRange] = useState<7 | 30 | 90>(30);
   const activityData = useMemo(
     () => buildActivityData(totalMessages, recentSessions),
-    [totalMessages, recentSessions]
-  )
-  const rangedData = useMemo(() => activityData.slice(-range), [activityData, range])
-  const chatsSpark = useMemo(() => buildSparkline(activityData), [activityData])
-  const messagesSpark = useMemo(() => buildSparkline(activityData.slice().reverse()), [activityData])
+    [totalMessages, recentSessions],
+  );
+  const rangedData = useMemo(
+    () => activityData.slice(-range),
+    [activityData, range],
+  );
+  const chatsSpark = useMemo(
+    () => buildSparkline(activityData),
+    [activityData],
+  );
+  const messagesSpark = useMemo(
+    () => buildSparkline(activityData.slice().reverse()),
+    [activityData],
+  );
   const tokensSpark = useMemo(
-    () => buildSparkline(activityData.map((point) => ({ ...point, value: Math.round(point.value * 1.8) }))),
-    [activityData]
-  )
+    () =>
+      buildSparkline(
+        activityData.map((point) => ({
+          ...point,
+          value: Math.round(point.value * 1.8),
+        })),
+      ),
+    [activityData],
+  );
   const planSpark = useMemo(
     () =>
       buildSparkline(
-        activityData.map((point, idx) => ({ ...point, value: Math.max(1, (idx % 4) + 1) }))
+        activityData.map((point, idx) => ({
+          ...point,
+          value: Math.max(1, (idx % 4) + 1),
+        })),
       ),
-    [activityData]
-  )
+    [activityData],
+  );
 
-  const usagePercent = Math.min(100, Math.round((totalMessages / Math.max(monthlyMessageLimit, 1)) * 100))
-  const usageColor = usageBarColor(usagePercent)
-  const usageGradient = usageBarGradient(usagePercent)
+  const usagePercent = Math.min(
+    100,
+    Math.round((totalMessages / Math.max(monthlyMessageLimit, 1)) * 100),
+  );
+  const usageColor = usageBarColor(usagePercent);
+  const usageGradient = usageBarGradient(usagePercent);
 
   const statCards = [
     {
       label: "Total chats",
       icon: MessageSquare,
       value: totalChatsThisMonth,
-      trend: { value: Math.max(1, Math.min(30, (totalChatsThisMonth % 17) + 4)), direction: "up" as const },
+      trend: {
+        value: Math.max(1, Math.min(30, (totalChatsThisMonth % 17) + 4)),
+        direction: "up" as const,
+      },
       sparkline: chatsSpark,
     },
     {
       label: "Total messages",
       icon: Bot,
       value: totalMessages,
-      trend: { value: Math.max(1, Math.min(24, (totalMessages % 13) + 3)), direction: "up" as const },
+      trend: {
+        value: Math.max(1, Math.min(24, (totalMessages % 13) + 3)),
+        direction: "up" as const,
+      },
       sparkline: messagesSpark,
     },
     {
       label: "Tokens used",
       icon: Sparkles,
       value: tokensThisMonth,
-      trend: { value: Math.max(1, Math.min(18, (tokensThisMonth % 11) + 2)), direction: "down" as const },
+      trend: {
+        value: Math.max(1, Math.min(18, (tokensThisMonth % 11) + 2)),
+        direction: "down" as const,
+      },
       sparkline: tokensSpark,
     },
     {
@@ -129,7 +151,7 @@ export function DashboardOverviewClient({
       valueText: planTier.toUpperCase(),
       sparkline: planSpark,
     },
-  ]
+  ];
 
   return (
     <div className="space-y-8">
@@ -140,7 +162,7 @@ export function DashboardOverviewClient({
         className="mb-8"
       >
         <h2 className="font-display text-3xl tracking-tight text-[hsl(var(--color-text-primary))]">
-          {greetingPrefix}, Welcome back, {name}
+          Welcome back, {name}
         </h2>
         <p className="mt-2 text-sm text-[hsl(var(--color-text-secondary))]">
           Here&apos;s what&apos;s happening with your account today.
@@ -159,7 +181,10 @@ export function DashboardOverviewClient({
         {statCards.map((card) => (
           <motion.div
             key={card.label}
-            variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              show: { opacity: 1, y: 0 },
+            }}
             transition={{ duration: 0.3 }}
           >
             <StatCard {...card} />
@@ -176,7 +201,9 @@ export function DashboardOverviewClient({
         >
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           <div className="mb-5 flex items-center justify-between">
-            <h3 className="font-display text-xl text-[hsl(var(--color-text-primary))]">Activity</h3>
+            <h3 className="font-display text-xl text-[hsl(var(--color-text-primary))]">
+              Activity
+            </h3>
             <div className="rounded-full border border-[hsl(var(--color-border))] p-1">
               {[7, 30, 90].map((option) => (
                 <button
@@ -187,7 +214,7 @@ export function DashboardOverviewClient({
                     "rounded-full px-3 py-1 text-xs transition-colors",
                     range === option
                       ? "bg-[hsl(var(--color-text-primary)/0.12)] text-[hsl(var(--color-text-primary))]"
-                      : "text-[hsl(var(--color-text-secondary))]"
+                      : "text-[hsl(var(--color-text-secondary))]",
                   )}
                 >
                   {option}d
@@ -196,25 +223,53 @@ export function DashboardOverviewClient({
             </div>
           </div>
           <div className="h-72 min-h-[18rem] min-w-0">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={0}
+              minHeight={1}
+            >
               <AreaChart data={rangedData}>
                 <defs>
-                  <linearGradient id="activity-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--color-accent))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--color-accent))" stopOpacity={0} />
+                  <linearGradient
+                    id="activity-fill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor="hsl(var(--color-accent))"
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="hsl(var(--color-accent))"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="hsl(var(--color-text-primary)/0.05)" vertical={false} />
+                <CartesianGrid
+                  stroke="hsl(var(--color-text-primary)/0.05)"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="day"
                   stroke="hsl(var(--color-text-secondary))"
-                  tick={{ fill: "hsl(var(--color-text-secondary))", fontSize: 11 }}
+                  tick={{
+                    fill: "hsl(var(--color-text-secondary))",
+                    fontSize: 11,
+                  }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
                   stroke="hsl(var(--color-text-secondary))"
-                  tick={{ fill: "hsl(var(--color-text-secondary))", fontSize: 11 }}
+                  tick={{
+                    fill: "hsl(var(--color-text-secondary))",
+                    fontSize: 11,
+                  }}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -265,13 +320,31 @@ export function DashboardOverviewClient({
             className="gradient-border relative rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-6"
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <h3 className="font-display text-lg text-[hsl(var(--color-text-primary))]">Quick actions</h3>
+            <h3 className="font-display text-lg text-[hsl(var(--color-text-primary))]">
+              Quick actions
+            </h3>
             <div className="mt-4 space-y-2">
               {[
-                { href: "/chat", label: "Start a new conversation", icon: MessageSquare },
-                { href: "/settings", label: "Update account settings", icon: Settings },
-                { href: "/billing", label: "Manage billing and plan", icon: CreditCard },
-                { href: "/pricing", label: "Compare upgrade options", icon: Rocket },
+                {
+                  href: "/chat",
+                  label: "Start a new conversation",
+                  icon: MessageSquare,
+                },
+                {
+                  href: "/settings",
+                  label: "Update account settings",
+                  icon: Settings,
+                },
+                {
+                  href: "/billing",
+                  label: "Manage billing and plan",
+                  icon: CreditCard,
+                },
+                {
+                  href: "/pricing",
+                  label: "Compare upgrade options",
+                  icon: Rocket,
+                },
               ].map((action) => (
                 <Link
                   key={action.href}
@@ -295,9 +368,14 @@ export function DashboardOverviewClient({
             className="gradient-border relative rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-6"
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <h3 className="font-display text-lg text-[hsl(var(--color-text-primary))]">Plan usage</h3>
+            <h3 className="font-display text-lg text-[hsl(var(--color-text-primary))]">
+              Plan usage
+            </h3>
             <p className="mt-2 text-sm text-[hsl(var(--color-text-secondary))]">
-              <span className="font-medium text-[hsl(var(--color-text-primary))]">{totalMessages.toLocaleString()}</span> of{" "}
+              <span className="font-medium text-[hsl(var(--color-text-primary))]">
+                {totalMessages.toLocaleString()}
+              </span>{" "}
+              of{" "}
               <span className="font-medium text-[hsl(var(--color-text-primary))]">
                 {monthlyMessageLimit.toLocaleString()}
               </span>{" "}
@@ -318,7 +396,10 @@ export function DashboardOverviewClient({
             <div className="mt-2 flex items-center justify-between text-xs text-[hsl(var(--color-text-secondary))]">
               <span>{usagePercent}% used</span>
               {usagePercent > 70 ? (
-                <Link href="/pricing" className="text-[hsl(var(--color-accent-soft))] underline underline-offset-4">
+                <Link
+                  href="/pricing"
+                  className="text-[hsl(var(--color-accent-soft))] underline underline-offset-4"
+                >
                   Upgrade plan
                 </Link>
               ) : null}
@@ -333,8 +414,13 @@ export function DashboardOverviewClient({
         transition={{ duration: 0.35, delay: 0.24 }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-display text-xl text-[hsl(var(--color-text-primary))]">Recent conversations</h3>
-          <Link href="/chat" className="text-sm text-[hsl(var(--color-accent-soft))]">
+          <h3 className="font-display text-xl text-[hsl(var(--color-text-primary))]">
+            Recent conversations
+          </h3>
+          <Link
+            href="/chat"
+            className="text-sm text-[hsl(var(--color-accent-soft))]"
+          >
             View all →
           </Link>
         </div>
@@ -342,12 +428,18 @@ export function DashboardOverviewClient({
           <div className="gradient-border relative flex min-h-56 flex-col items-center justify-center rounded-2xl border border-[hsl(var(--color-border))] bg-[hsl(var(--color-bg-elevated))] p-8 text-center">
             <motion.div
               animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
               className="mb-4 rounded-full bg-[hsl(var(--color-accent)/0.12)] p-4"
             >
               <Sparkles className="size-6 text-[hsl(var(--color-accent-soft))]" />
             </motion.div>
-            <p className="font-display text-lg text-[hsl(var(--color-text-primary))]">Start your first chat</p>
+            <p className="font-display text-lg text-[hsl(var(--color-text-primary))]">
+              Start your first chat
+            </p>
             <p className="mt-2 text-sm text-[hsl(var(--color-text-secondary))]">
               Kick off a conversation and your recent history will appear here.
             </p>
@@ -378,19 +470,26 @@ export function DashboardOverviewClient({
                       <span className="inline-flex size-7 items-center justify-center rounded-full bg-[hsl(var(--color-accent)/0.2)]">
                         <Bot className="size-4 text-[hsl(var(--color-accent-soft))]" />
                       </span>
-                      <span className="text-xs text-[hsl(var(--color-text-secondary))]">AI assistant</span>
+                      <span className="text-xs text-[hsl(var(--color-text-secondary))]">
+                        AI assistant
+                      </span>
                     </div>
                     <span className="text-[11px] text-[hsl(var(--color-text-secondary))]">
-                      {relativeTimeLabel(session.updated_at ?? session.created_at)}
+                      {relativeTimeLabel(
+                        session.updated_at ?? session.created_at,
+                      )}
                     </span>
                   </div>
                   <p className="truncate text-sm font-medium text-[hsl(var(--color-text-primary))]">
-                    {formatChatTitle(session.title || "Untitled conversation") ||
+                    {formatChatTitle(
+                      session.title || "Untitled conversation",
+                    ) ||
                       session.title ||
                       "Untitled conversation"}
                   </p>
                   <p className="mt-2 max-h-9 overflow-hidden text-xs text-[hsl(var(--color-text-secondary))]">
-                    Continue where you left off in this conversation and keep building momentum.
+                    Continue where you left off in this conversation and keep
+                    building momentum.
                   </p>
                 </Link>
               </motion.div>
@@ -399,5 +498,5 @@ export function DashboardOverviewClient({
         )}
       </motion.section>
     </div>
-  )
+  );
 }
