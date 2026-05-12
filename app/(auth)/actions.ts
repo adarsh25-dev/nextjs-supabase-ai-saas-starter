@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs"
 import { z } from "zod"
 
 import { sendWelcomeEmail } from "@/lib/email/send"
+import { getSiteUrl } from "@/lib/site-url"
 import { createClient } from "@/lib/supabase/server"
 
 type ActionResult = {
@@ -90,7 +91,7 @@ export async function signupWithPassword(input: SignupInput): Promise<ActionResu
     }
 
     const supabase = await createClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+    const siteUrl = getSiteUrl()
 
     const { data, error } = await supabase.auth.signUp({
       email: parsedInput.data.email,
@@ -131,7 +132,7 @@ export async function sendMagicLink(input: MagicLinkInput): Promise<ActionResult
     }
 
     const supabase = await createClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
+    const siteUrl = getSiteUrl()
     const redirectPath = parsedInput.data.redirectPath ?? "/dashboard"
 
     const { error } = await supabase.auth.signInWithOtp({

@@ -6,9 +6,10 @@ import "cal-sans"
 import { GlobalCommandPalette } from "@/components/layout/global-command-palette"
 import { PosthogProvider } from "@/components/providers/posthog-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { getSiteUrl } from "@/lib/site-url"
 import "./globals.css"
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   title: "Next.js Supabase AI SaaS Starter",

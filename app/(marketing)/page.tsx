@@ -1,10 +1,11 @@
 import type { Metadata } from "next"
 import { LandingPageClient } from "@/components/marketing/LandingPageClient"
 import { getChatCodeLines } from "@/lib/marketing/get-chat-code-lines"
+import { getSiteUrl } from "@/lib/site-url"
 import { PLANS } from "@/lib/stripe/config"
 
 const GITHUB_URL = "https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter"
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   title: "Home — SaaS Starter",

@@ -3,8 +3,9 @@ import type { Metadata } from "next"
 import { ClientLayout } from "@/components/layout/client-layout"
 import { AuroraBackground } from "@/components/ui/primitives/AuroraBackground"
 import { NoiseLayer } from "@/components/ui/primitives/NoiseLayer"
+import { getSiteUrl } from "@/lib/site-url"
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   openGraph: {

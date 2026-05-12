@@ -1,6 +1,9 @@
 import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from "@react-email/components"
+import { getSiteUrl } from "@/lib/site-url"
 
 export function WelcomeEmailTemplate({ name }: { name: string }) {
+  const siteUrl = getSiteUrl()
+
   return (
     <Html>
       <Head />
@@ -13,7 +16,7 @@ export function WelcomeEmailTemplate({ name }: { name: string }) {
           </Text>
           <Section style={{ marginTop: "20px" }}>
             <Button
-              href={`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard`}
+              href={`${siteUrl}/dashboard`}
               style={{
                 backgroundColor: "#7c3aed",
                 color: "#ffffff",
