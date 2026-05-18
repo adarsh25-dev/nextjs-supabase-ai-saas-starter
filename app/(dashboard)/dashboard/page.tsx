@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+
+import { brandSectionTitle } from "@/lib/brand"
 import { redirect } from "next/navigation"
 
 import { DashboardOverviewClient } from "@/components/dashboard/DashboardOverviewClient"
@@ -6,7 +8,7 @@ import { PLAN_LIMITS } from "@/lib/stripe/config"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
-  title: "Dashboard — SaaS Starter",
+  title: brandSectionTitle("Dashboard"),
   description: "Overview of usage, recent conversations, and account activity.",
 }
 

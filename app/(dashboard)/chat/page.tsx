@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
+
+import { brandSectionTitle } from "@/lib/brand"
 import { redirect } from "next/navigation"
 
 import { ChatLayout } from "@/components/chat/chat-layout"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
-  title: "Chat — SaaS Starter",
+  title: brandSectionTitle("Chat"),
   description: "Stream AI responses, manage sessions, and continue conversations.",
 }
 

@@ -3,17 +3,18 @@ import type { Metadata } from "next"
 import { ClientLayout } from "@/components/layout/client-layout"
 import { AuroraBackground } from "@/components/ui/primitives/AuroraBackground"
 import { NoiseLayer } from "@/components/ui/primitives/NoiseLayer"
+import { BRAND_NAME, BRAND_TAGLINE, ogImageUrl } from "@/lib/brand"
 import { getSiteUrl } from "@/lib/site-url"
 
 const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   openGraph: {
-    title: "SaaS Starter",
-    description: "Production-ready starter for AI SaaS apps.",
+    title: BRAND_NAME,
+    description: BRAND_TAGLINE,
     type: "website",
     url: siteUrl,
-    images: [{ url: `/api/og?title=${encodeURIComponent("SaaS Starter")}` }],
+    images: [{ url: ogImageUrl() }],
   },
 }
 

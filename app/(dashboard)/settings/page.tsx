@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+
+import { brandSectionTitle } from "@/lib/brand"
 import dynamic from "next/dynamic"
 
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,7 +22,7 @@ const SettingsTabs = dynamic(
 )
 
 export const metadata: Metadata = {
-  title: "Settings — SaaS Starter",
+  title: brandSectionTitle("Settings"),
   description: "Manage profile, credentials, linked accounts, and preferences.",
 }
 

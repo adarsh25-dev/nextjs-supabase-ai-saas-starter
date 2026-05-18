@@ -31,6 +31,7 @@ import { GridBackground } from "@/components/ui/primitives/GridBackground";
 import { MagneticButton } from "@/components/ui/primitives/MagneticButton";
 import { RevealOnScroll } from "@/components/ui/primitives/RevealOnScroll";
 import { Spotlight } from "@/components/ui/primitives/Spotlight";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/marketing/Footer";
 import { Nav } from "@/components/marketing/Nav";
@@ -56,8 +57,6 @@ type LandingPageClientProps = {
 
 const GITHUB_URL =
   "https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter";
-const heroHeadingLineTwo = "SaaS starter for AI products";
-
 const faqs = [
   {
     q: "What's included?",
@@ -77,7 +76,7 @@ const faqs = [
   },
   {
     q: "How is this different from other starters?",
-    a: "It focuses on AI SaaS workflows, reliable auth/billing foundations, and strongly typed code paths.",
+    a: `${BRAND_NAME} focuses on AI SaaS workflows, reliable auth/billing foundations, and strongly typed code paths.`,
   },
   {
     q: "Is it suitable for teams?",
@@ -163,18 +162,9 @@ export function LandingPageClient({
                 className="mx-auto w-full max-w-5xl animate-[hero-fade-up_560ms_cubic-bezier(0.16,1,0.3,1)_both]"
                 style={{ animationDelay: "70ms" }}
               >
-                <h1 className="mx-auto mt-7 flex w-full max-w-[60rem] flex-col items-center text-center text-[hsl(var(--color-text-primary))]">
-                  <span className="block bg-[linear-gradient(90deg,hsl(var(--color-text-primary)),hsl(var(--color-accent-soft)),hsl(var(--color-text-primary)))] bg-[length:220%_100%] bg-clip-text text-[clamp(2.4rem,7vw,5.4rem)] leading-[0.94] tracking-[-0.015em] text-transparent [text-shadow:0_0_18px_hsl(var(--color-accent)/0.18)] animate-[hero-fade-up_520ms_cubic-bezier(0.16,1,0.3,1)_both,shimmer_7s_linear_infinite]">
-                    The Next.js + Supabase
-                  </span>
-                  <span
-                    className="block bg-[linear-gradient(90deg,hsl(var(--color-text-primary)),hsl(var(--color-accent-soft)),hsl(var(--color-text-primary)))] bg-[length:220%_100%] bg-clip-text text-[clamp(2.2rem,6.2vw,5.2rem)] leading-[0.94] tracking-[-0.015em] text-transparent [text-shadow:0_0_20px_hsl(var(--color-accent)/0.2)] md:whitespace-nowrap animate-[hero-fade-up_520ms_cubic-bezier(0.16,1,0.3,1)_both,shimmer_7s_linear_infinite]"
-                    style={{ animationDelay: "0ms" }}
-                  >
-                    {heroHeadingLineTwo.replace("AI products", "")}
-                    <span className="bg-gradient-to-r from-[hsl(16_60%_60%)] to-[hsl(32_47%_61%)] bg-clip-text text-transparent [text-shadow:0_0_26px_hsl(var(--color-accent)/0.35)]">
-                      AI products
-                    </span>
+                <h1 className="mx-auto mt-7 max-w-[60rem] text-center">
+                  <span className="block bg-[linear-gradient(90deg,hsl(var(--color-text-primary)),hsl(var(--color-accent-soft)),hsl(var(--color-text-primary)))] bg-[length:220%_100%] bg-clip-text font-display text-[clamp(2.8rem,8vw,5.6rem)] leading-[1.2] tracking-[-0.04em] text-transparent [text-shadow:0_0_18px_hsl(var(--color-accent)/0.18)] animate-[hero-fade-up_520ms_cubic-bezier(0.16,1,0.3,1)_both,shimmer_7s_linear_infinite]">
+                    {BRAND_NAME}
                   </span>
                 </h1>
               </div>
@@ -183,9 +173,8 @@ export function LandingPageClient({
                 className="animate-[hero-fade-up_620ms_cubic-bezier(0.16,1,0.3,1)_both]"
                 style={{ animationDelay: "150ms" }}
               >
-                <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-[hsl(var(--color-text-secondary))]">
-                  Ship your AI SaaS in days, not months. Auth, billing, AI chat,
-                  and dashboard — done right.
+                <p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-[hsl(var(--color-text-secondary))] md:text-xl">
+                  {BRAND_TAGLINE}
                 </p>
               </div>
 
@@ -234,7 +223,7 @@ export function LandingPageClient({
                   <div className="relative overflow-hidden rounded-[1rem] border border-[hsl(var(--color-border))]">
                     <Image
                       src="/marketing-dashboard-placeholder.png"
-                      alt="SaaS dashboard preview"
+                      alt={`${BRAND_NAME} dashboard preview`}
                       width={1280}
                       height={634}
                       quality={100}
@@ -596,7 +585,7 @@ export function LandingPageClient({
           <div className="relative mx-auto w-full max-w-7xl px-4 text-center">
             <RevealOnScroll>
               <h3 className="text-[clamp(2.1rem,6vw,4.4rem)] leading-tight">
-                Start shipping your AI SaaS
+                Start building with {BRAND_NAME}
               </h3>
               <p className="mx-auto mt-4 max-w-2xl text-[hsl(var(--color-text-secondary))]">
                 Move from idea to production with a polished starter built for

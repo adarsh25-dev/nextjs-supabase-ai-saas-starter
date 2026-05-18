@@ -1,20 +1,21 @@
 import type { Metadata } from "next"
 
 import { PricingGrid } from "@/components/billing/pricing-grid"
+import { BRAND_NAME, BRAND_TAGLINE, brandSectionTitle, ogImageUrl } from "@/lib/brand"
 import { getSiteUrl } from "@/lib/site-url"
 import { PLANS } from "@/lib/stripe/config"
 
 const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
-  title: "Pricing — SaaS Starter",
-  description: "Simple pricing plans to scale your AI SaaS from idea to production.",
+  title: brandSectionTitle("Pricing"),
+  description: BRAND_TAGLINE,
   openGraph: {
-    title: "Pricing — SaaS Starter",
-    description: "Simple pricing plans to scale your AI SaaS from idea to production.",
+    title: `${BRAND_NAME} — Pricing`,
+    description: BRAND_TAGLINE,
     type: "website",
     url: `${siteUrl}/pricing`,
-    images: [{ url: `/api/og?title=${encodeURIComponent("SaaS Starter Pricing")}` }],
+    images: [{ url: ogImageUrl({ title: `${BRAND_NAME} Pricing` }) }],
   },
 }
 

@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Logo } from "@/components/ui/primitives/Logo"
+import { BRAND_NAME } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 type SidebarProps = {
@@ -188,7 +189,7 @@ export function Sidebar({
             </DropdownMenu>
           </div>
           {!collapsed ? (
-            <p className="px-2 text-[11px] text-[hsl(var(--color-text-secondary))]">Powered by SaaS Starter · {planTier}</p>
+            <p className="px-2 text-[11px] text-[hsl(var(--color-text-secondary))]">Powered by {BRAND_NAME} · {planTier}</p>
           ) : null}
         </div>
       </aside>

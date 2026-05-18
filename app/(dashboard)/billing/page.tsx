@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+
+import { brandSectionTitle } from "@/lib/brand"
 import Link from "next/link"
 
 import { BillingEvents } from "@/components/billing/billing-events"
@@ -10,7 +12,7 @@ import { getSubscription } from "@/lib/billing/get-subscription"
 import { PLANS } from "@/lib/stripe/config"
 
 export const metadata: Metadata = {
-  title: "Billing — SaaS Starter",
+  title: brandSectionTitle("Billing"),
   description: "Manage your plan, monitor usage, and update subscription details.",
 }
 

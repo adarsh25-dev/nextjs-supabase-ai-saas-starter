@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs"
 
+import { BRAND_NAME } from "@/lib/brand"
 import { getEmailFromAddress, resend } from "@/lib/email/client"
 import { PasswordResetEmailTemplate } from "@/lib/email/templates/password-reset"
 import { SubscriptionCanceledEmailTemplate } from "@/lib/email/templates/subscription-canceled"
@@ -28,7 +29,7 @@ async function sendEmail(params: {
 export async function sendWelcomeEmail(to: string, name: string) {
   await sendEmail({
     to,
-    subject: "Welcome to SaaS Starter",
+    subject: `Welcome to ${BRAND_NAME}`,
     react: <WelcomeEmailTemplate name={name} />,
   })
 }

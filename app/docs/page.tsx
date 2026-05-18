@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 
+import { BRAND_NAME, BRAND_TAGLINE, brandSectionTitle } from "@/lib/brand"
+
 export const metadata: Metadata = {
-  title: "Docs — SaaS Starter",
-  description: "Quick documentation entry point for the SaaS Starter kit.",
+  title: brandSectionTitle("Docs"),
+  description: `Documentation for ${BRAND_NAME}. ${BRAND_TAGLINE}`,
 }
 
 export default function DocsPage() {

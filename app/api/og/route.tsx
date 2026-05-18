@@ -1,11 +1,13 @@
 import { ImageResponse } from "next/og"
 
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand"
+
 export const runtime = "edge"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const title = searchParams.get("title") || "SaaS Starter"
-  const subtitle = searchParams.get("subtitle") || "Next.js + Supabase AI SaaS starter"
+  const title = searchParams.get("title") || BRAND_NAME
+  const subtitle = searchParams.get("subtitle") || BRAND_TAGLINE
 
   return new ImageResponse(
     (
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ fontSize: 24, opacity: 0.9, marginBottom: 16 }}>SaaS Starter</div>
+        <div style={{ fontSize: 24, opacity: 0.9, marginBottom: 16 }}>{BRAND_NAME}</div>
         <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.1, maxWidth: "1000px" }}>{title}</div>
         <div style={{ marginTop: 24, fontSize: 30, opacity: 0.9 }}>{subtitle}</div>
       </div>

@@ -5,6 +5,6 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim() || "sk_test_placeh
 export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2024-10-28.acacia" as any,
   appInfo: {
-    name: "nextjs-supabase-ai-saas-starter",
+    name: "LaunchForge",
   },
 })

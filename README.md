@@ -1,11 +1,13 @@
-# Next.js Supabase AI SaaS Starter
+# LaunchForge
+
+**Production AI SaaS starter · Auth, billing, streaming chat, and dashboard — ready to deploy.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 ![Made with Next.js](https://img.shields.io/badge/Made%20with-Next.js-black)
 [![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/new)
 [![GitHub stars](https://img.shields.io/github/stars/adarshparmar/nextjs-supabase-ai-saas-starter?style=social)](https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter)
 
-Production-ready SaaS starter built for fast shipping and real-world reliability: Supabase auth, Stripe subscriptions, Gemma 4-powered streaming chat, usage limits, transactional email, analytics, and monitoring.
+LaunchForge is a production-ready AI SaaS starter: Supabase auth, Stripe subscriptions, Gemma 4-powered streaming chat, usage limits, transactional email, analytics, and monitoring.
 
 ## Screenshots
 

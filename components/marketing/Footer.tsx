@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 import { Logo } from "@/components/ui/primitives/Logo"
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand"
 
 const GITHUB_URL = "https://github.com/adarshparmar/nextjs-supabase-ai-saas-starter"
 const TWITTER_URL = "https://x.com"
@@ -18,7 +19,7 @@ export function Footer() {
         <div className="mb-10 space-y-3 border-b border-[hsl(var(--color-border)/0.55)] pb-8">
           <Logo size="lg" />
           <p className="max-w-xl text-sm text-[hsl(var(--color-text-secondary))]">
-            Build production-grade AI SaaS products with premium UX, solid foundations, and a clean developer workflow.
+            {BRAND_TAGLINE}
           </p>
         </div>
         <div className="grid gap-8 md:grid-cols-4">
@@ -56,7 +57,7 @@ export function Footer() {
           />
         </div>
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[hsl(var(--color-border)/0.55)] pt-6 text-xs text-[hsl(var(--color-text-secondary))] md:flex-row">
-          <p>© {new Date().getFullYear()} SaaS Starter. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.</p>
           <div className="flex items-center gap-3">
             <SocialLink href={GITHUB_URL} label="GitHub">
               <GitHubMark className="size-4" />

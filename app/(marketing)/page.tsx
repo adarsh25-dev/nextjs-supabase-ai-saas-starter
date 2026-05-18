@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { LandingPageClient } from "@/components/marketing/LandingPageClient"
+import { BRAND_NAME, BRAND_TAGLINE, ogImageUrl } from "@/lib/brand"
 import { getChatCodeLines } from "@/lib/marketing/get-chat-code-lines"
 import { getSiteUrl } from "@/lib/site-url"
 import { PLANS } from "@/lib/stripe/config"
@@ -8,14 +9,14 @@ const GITHUB_URL = "https://github.com/adarshparmar/nextjs-supabase-ai-saas-star
 const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
-  title: "Home — SaaS Starter",
-  description: "Ship your AI SaaS in days with a production-ready Next.js starter.",
+  title: { absolute: BRAND_NAME },
+  description: BRAND_TAGLINE,
   openGraph: {
-    title: "The Next.js + Supabase SaaS starter for AI products",
-    description: "Ship your AI SaaS in days with auth, billing, AI chat, and dashboard.",
+    title: BRAND_NAME,
+    description: BRAND_TAGLINE,
     type: "website",
     url: siteUrl,
-    images: [{ url: `/api/og?title=${encodeURIComponent("Next.js + Supabase SaaS starter")}` }],
+    images: [{ url: ogImageUrl() }],
   },
 }
 
@@ -39,14 +40,14 @@ export default async function MarketingHomePage() {
             {
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "SaaS Starter",
+              name: BRAND_NAME,
               url: siteUrl,
               sameAs: [GITHUB_URL],
             },
             {
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: "SaaS Starter",
+              name: BRAND_NAME,
               url: siteUrl,
               potentialAction: {
                 "@type": "SearchAction",

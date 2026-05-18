@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 
+import { BRAND_NAME } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 type LogoProps = {
@@ -10,25 +11,39 @@ type LogoProps = {
 }
 
 const sizeStyles: Record<NonNullable<LogoProps["size"]>, string> = {
-  sm: "text-sm",
-  md: "text-lg",
-  lg: "text-2xl",
+  sm: "text-base",
+  md: "text-xl",
+  lg: "text-3xl",
+}
+
+const svgSizes: Record<NonNullable<LogoProps["size"]>, number> = {
+  sm: 22,
+  md: 30,
+  lg: 38,
 }
 
 export function Logo({ size = "md", className }: LogoProps) {
+  const svgSize = svgSizes[size]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-      className={cn("inline-flex items-center gap-2 font-medium tracking-[-0.04em]", sizeStyles[size], className)}
+      className={cn("inline-flex items-center gap-2.5 font-medium tracking-[-0.04em]", sizeStyles[size], className)}
     >
-      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
-        <rect x="2" y="2" width="20" height="20" rx="6" fill="hsl(var(--color-bg-elevated))" />
-        <path d="M7 16V8h2.2l4.8 5.8V8H17v8h-2.2L10 10.2V16z" fill="hsl(var(--color-text-primary))" />
-      </svg>
-      <span className="text-[hsl(var(--color-text-primary))]">SaaS Starter</span>
-      <span className="size-1.5 rounded-full bg-[hsl(var(--color-accent))]" />
+      <img
+        src="/LaunchForge.png"
+        alt="LaunchForge Logo"
+        width={svgSize}
+        height={svgSize}
+        className="shrink-0 rounded-full"
+      />
+      <span className="text-[hsl(var(--color-text-primary))]">{BRAND_NAME}</span>
+      <span className={cn(
+        "rounded-full bg-[hsl(var(--color-accent))]",
+        size === "sm" ? "size-1.5" : size === "md" ? "size-2" : "size-2.5"
+      )} />
     </motion.div>
   )
 }
